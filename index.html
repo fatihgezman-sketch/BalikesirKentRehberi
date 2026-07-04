@@ -477,7 +477,7 @@
         onSelect: function(item){
           state.mahalle = item.value;
           setFieldValue(els.fieldMahalle, item.value, true);
-          resetFrom('mahalle');
+          resetFrom('sokak');
           setFieldValue(els.fieldSokak, 'Yükleniyor...', false);
           enableField(els.fieldSokak, false);
           loadMahalleData(state.ilce, state.mahalle).then(function(data){
