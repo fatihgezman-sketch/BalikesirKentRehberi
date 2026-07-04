@@ -310,6 +310,21 @@
   .share-btn svg{ width:20px; height:20px; }
   .share-btn:disabled{ opacity:0.35; }
   .share-btn:active{ border-color:#444; }
+
+  /* ---- Smart unified search ---- */
+  .smart-search{ margin-bottom: 20px; }
+  .smart-box{ margin-bottom: 8px; }
+  .smart-box input{
+    padding-top:15px; padding-bottom:15px; font-size:16px;
+  }
+  .smart-search-hint{
+    font-size:12px; color: var(--text-dim); text-align:center; margin: 0; padding: 0 6px;
+  }
+  .divider-label{
+    text-align:center; color: var(--text-dim); font-size:12px;
+    margin: 4px 0 16px;
+    position:relative;
+  }
 </style>
 </head>
 <body>
@@ -323,6 +338,19 @@
     </div>
   </header>
 
+  <div class="smart-search">
+    <div class="search-box smart-box">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input type="search" id="smart-input" placeholder='Örn: Paşa Alanı Mahallesi 163. Sokak No:12' autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+      <button class="mic-btn" id="smart-mic-btn" type="button" aria-label="Sesli arama">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+    </div>
+    <p class="smart-search-hint">Mahalle, sokak ve kapı no'yu tek seferde yaz ya da mikrofona söyle.</p>
+  </div>
+
   <div class="recents-section" id="recents-section" style="display:none;">
     <div class="recents-tabs">
       <button class="tab-btn active" type="button" data-tab="recent">Son Aramalar</button>
@@ -330,6 +358,8 @@
     </div>
     <div class="recents-list" id="recents-list"></div>
   </div>
+
+  <p class="divider-label">veya adım adım seç</p>
 
   <div class="field disabled" id="field-il">
     <button class="field-btn" type="button" disabled>Balıkesir</button>
@@ -425,6 +455,8 @@
     kapiNote: document.getElementById('kapi-note'),
     toast: document.getElementById('toast'),
     micBtn: document.getElementById('mic-btn'),
+    smartInput: document.getElementById('smart-input'),
+    smartMicBtn: document.getElementById('smart-mic-btn'),
     recentsSection: document.getElementById('recents-section'),
     recentsList: document.getElementById('recents-list'),
     tabBtns: document.querySelectorAll('.tab-btn')
@@ -473,6 +505,8 @@
 
   // ---------- data loading ----------
   var indexPromise = fetch(DATA_BASE + 'index.json').then(function(r){ return r.json(); });
+  var searchIndexPromise = fetch(DATA_BASE + 'search-index.json').then(function(r){ return r.json(); });
+  var reverseNameCache = null;
 
   function loadMahalleData(ilce, mahalle){
     return indexPromise.then(function(idx){
@@ -481,6 +515,198 @@
       return fetch(DATA_BASE + ILCE_SLUG[ilce] + '/' + slug + '.json').then(function(r){ return r.json(); });
     });
   }
+
+  // ---------- smart unified search ----------
+  function normalizeTr(s){
+    if (!s) return '';
+    var map = {'İ':'i','I':'i','ı':'i','Ş':'s','ş':'s','Ğ':'g','ğ':'g','Ü':'u','ü':'u','Ö':'o','ö':'o','Ç':'c','ç':'c'};
+    var out = '';
+    for (var i = 0; i < s.length; i++){ out += map[s[i]] || s[i]; }
+    out = out.toLowerCase();
+    out = out.replace(/[^a-z0-9 ]+/g, ' ');
+    out = out.replace(/\s+/g, ' ').trim();
+    return out;
+  }
+
+  function scoreMatch(guessNorm, targetNorm){
+    if (!guessNorm || !targetNorm) return 0;
+    if (guessNorm === targetNorm) return 100;
+    if (targetNorm.indexOf(guessNorm) !== -1 || guessNorm.indexOf(targetNorm) !== -1) return 80;
+    var gTokens = guessNorm.split(' ');
+    var tTokens = targetNorm.split(' ');
+    var common = gTokens.filter(function(t){ return t && tTokens.indexOf(t) !== -1; }).length;
+    if (!common) return 0;
+    return Math.round(60 * common / Math.max(gTokens.length, tTokens.length));
+  }
+
+  function getReverseNames(idx){
+    if (reverseNameCache) return reverseNameCache;
+    reverseNameCache = {};
+    Object.keys(idx).forEach(function(ilce){
+      reverseNameCache[ilce] = {};
+      Object.keys(idx[ilce]).forEach(function(name){
+        reverseNameCache[ilce][idx[ilce][name]] = name;
+      });
+    });
+    return reverseNameCache;
+  }
+
+  var MAHALLE_KEYWORD_RE = /\b(mahallesinde|mahallesi|mahallenin|mah\.?|mahalle)\b/i;
+  var SOKAK_KEYWORD_RE = /\b(sokağında|sokağı|sokagi|sokak\w*|caddesinde|caddesi|cadde\w*|sk\.?|cd\.?)\b/i;
+
+  function splitAtKeyword(text, re){
+    var m = text.match(re);
+    if (!m) return null;
+    return { before: text.slice(0, m.index).trim(), after: text.slice(m.index + m[0].length).trim() };
+  }
+
+  function parseAddressQuery(raw){
+    var text = raw.trim();
+    var mahalleGuess = null, sokakGuess = null, no = null, blok = '';
+
+    var mSplit = splitAtKeyword(text, MAHALLE_KEYWORD_RE);
+    if (mSplit){ mahalleGuess = mSplit.before; text = mSplit.after; }
+
+    var sSplit = splitAtKeyword(text, SOKAK_KEYWORD_RE);
+    if (sSplit){ sokakGuess = sSplit.before.replace(/[.,]+$/, '').trim(); text = sSplit.after; }
+
+    var noMatch = text.match(/(\d+)\s*([a-zA-ZçÇğĞıİöÖşŞüÜ]{0,2})/);
+    if (noMatch){ no = noMatch[1]; blok = (noMatch[2] || '').toUpperCase(); }
+
+    if (!mahalleGuess && !sokakGuess){
+      sokakGuess = raw.trim();
+    }
+
+    return { mahalleGuess: mahalleGuess, sokakGuess: sokakGuess, no: no, blok: blok };
+  }
+
+  function resolveAndGo(match, no, blok, autoNavigate){
+    loadMahalleData(match.ilce, match.mahalle).then(function(data){
+      state.mahalleData = data;
+      var list = data[match.sokak] || [];
+      state.ilce = match.ilce;
+      state.mahalle = match.mahalle;
+      state.sokak = match.sokak;
+      state.kapiList = list;
+
+      var target = null;
+      if (no){
+        target = list.filter(function(a){ return a[0] === no; }).sort(function(a,b){
+          var aMatch = blok && (a[1] || '').toUpperCase() === blok;
+          var bMatch = blok && (b[1] || '').toUpperCase() === blok;
+          return (bMatch ? 1 : 0) - (aMatch ? 1 : 0);
+        })[0] || null;
+      }
+      var usedFallback = no && !target;
+      if (!target) target = list[0] || null;
+
+      if (!target){
+        showToast('Bu sokak için adres bulunamadı.');
+        return;
+      }
+      state.kapi = { no: target[0], blok: target[1], lat: target[2], lon: target[3] };
+
+      setFieldValue(els.fieldIlce, match.ilce, true);
+      enableField(els.fieldMahalle, true);
+      setFieldValue(els.fieldMahalle, match.mahalle, true);
+      enableField(els.fieldSokak, true);
+      setFieldValue(els.fieldSokak, match.sokak, true);
+      enableField(els.fieldKapi, true);
+      var kapiLabel = (target[0] || '?') + (target[1] ? ' ' + target[1] : '');
+      setFieldValue(els.fieldKapi, kapiLabel, true);
+      updateGoBtn();
+
+      if (autoNavigate){
+        var label = 'GZMN: ' + match.ilce + ' / ' + match.mahalle + ' / ' + match.sokak + ' No:' + target[0] + (target[1] ? ' ' + target[1] : '');
+        openInMaps(target[2], target[3], label);
+        addRecent({ ilce: match.ilce, mahalle: match.mahalle, sokak: match.sokak, no: target[0], blok: target[1], lat: target[2], lon: target[3] });
+        renderRecents();
+        showToast(usedFallback ? ('Kapı no ' + no + ' bulunamadı, en küçük numara açıldı.') : ('Bulundu: ' + match.mahalle + ' / ' + match.sokak));
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }).catch(function(){
+      showToast('Veri yüklenemedi, tekrar dene.');
+    });
+  }
+
+  function showSearchResultsSheet(results, parsed){
+    var items = results.map(function(r, i){
+      return { label: r.mahalle + ' — ' + r.sokak, searchText: normalizeTr(r.mahalle + ' ' + r.sokak), meta: r.ilce, value: i };
+    });
+    openSheet({
+      title: 'Arama Sonuçları',
+      searchPlaceholder: 'Sonuçlarda ara...',
+      items: items,
+      onSelect: function(item){
+        resolveAndGo(results[item.value], parsed.no, parsed.blok, false);
+      }
+    });
+  }
+
+  function runAddressSearch(rawQuery){
+    if (!rawQuery || !rawQuery.trim()){
+      showToast('Bir adres yaz ya da söyle.');
+      return;
+    }
+    Promise.all([indexPromise, searchIndexPromise]).then(function(vals){
+      var idx = vals[0], sIdx = vals[1];
+      getReverseNames(idx);
+      var parsed = parseAddressQuery(rawQuery);
+      var mahalleGuessNorm = normalizeTr(parsed.mahalleGuess);
+      var sokakGuessNorm = normalizeTr(parsed.sokakGuess);
+
+      var mahalleCandidates = [];
+      ['Altıeylül', 'Karesi'].forEach(function(ilce){
+        Object.keys(idx[ilce]).forEach(function(name){
+          var slug = idx[ilce][name];
+          var score = mahalleGuessNorm ? scoreMatch(mahalleGuessNorm, normalizeTr(name)) : 10;
+          if (score > 0) mahalleCandidates.push({ ilce: ilce, mahalle: name, slug: slug, score: score });
+        });
+      });
+      mahalleCandidates.sort(function(a, b){ return b.score - a.score; });
+      var topMahalleler = mahalleCandidates.slice(0, 6);
+      if (!topMahalleler.length){
+        ['Altıeylül', 'Karesi'].forEach(function(ilce){
+          Object.keys(idx[ilce]).forEach(function(name){
+            topMahalleler.push({ ilce: ilce, mahalle: name, slug: idx[ilce][name], score: 0 });
+          });
+        });
+      }
+
+      var results = [];
+      topMahalleler.forEach(function(mc){
+        var sokaklar = (sIdx[mc.ilce] && sIdx[mc.ilce][mc.slug]) || [];
+        sokaklar.forEach(function(sokak){
+          var sScore = sokakGuessNorm ? scoreMatch(sokakGuessNorm, normalizeTr(sokak)) : 5;
+          if (sScore > 0){
+            results.push({ ilce: mc.ilce, mahalle: mc.mahalle, slug: mc.slug, sokak: sokak, score: mc.score * 100 + sScore });
+          }
+        });
+      });
+      results.sort(function(a, b){ return b.score - a.score; });
+
+      if (!results.length){
+        showToast('Sonuç bulunamadı. Farklı yazmayı ya da söylemeyi dene.');
+        return;
+      }
+
+      var top = results[0];
+      var second = results[1];
+      var confident = top.score >= 8000 && (!second || (top.score - second.score) >= 1500);
+
+      if (confident){
+        resolveAndGo(top, parsed.no, parsed.blok, true);
+      } else {
+        showSearchResultsSheet(results.slice(0, 8), parsed);
+      }
+    });
+  }
+
+  els.smartInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){ e.preventDefault(); runAddressSearch(els.smartInput.value); }
+  });
+  els.smartInput.addEventListener('search', function(){ runAddressSearch(els.smartInput.value); });
 
   // ---------- recents / favorites (localStorage) ----------
   var LS_RECENT = 'gzmn_recents_v1';
@@ -906,32 +1132,41 @@
 
   // ---------- voice search ----------
   var SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SpeechRecognitionCtor){
-    els.micBtn.classList.add('show');
-    els.sheetSearch.classList.add('has-mic');
-    var recognition = new SpeechRecognitionCtor();
-    recognition.lang = 'tr-TR';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
 
-    els.micBtn.addEventListener('click', function(e){
+  function setupMicButton(btnEl, inputEl, onTranscript){
+    if (!SpeechRecognitionCtor) return;
+    btnEl.classList.add('show');
+    inputEl.classList.add('has-mic');
+    btnEl.addEventListener('click', function(e){
       e.stopPropagation();
+      var recognition = new SpeechRecognitionCtor();
+      recognition.lang = 'tr-TR';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      recognition.onresult = function(event){
+        var transcript = event.results[0][0].transcript;
+        onTranscript(transcript);
+      };
+      recognition.onerror = function(){ btnEl.classList.remove('listening'); };
+      recognition.onend = function(){ btnEl.classList.remove('listening'); };
       try {
-        els.micBtn.classList.add('listening');
+        btnEl.classList.add('listening');
         recognition.start();
       } catch(err){
-        els.micBtn.classList.remove('listening');
+        btnEl.classList.remove('listening');
       }
     });
-
-    recognition.onresult = function(event){
-      var transcript = event.results[0][0].transcript;
-      els.sheetSearch.value = transcript;
-      els.sheetSearch.dispatchEvent(new Event('input'));
-    };
-    recognition.onerror = function(){ els.micBtn.classList.remove('listening'); };
-    recognition.onend = function(){ els.micBtn.classList.remove('listening'); };
   }
+
+  setupMicButton(els.micBtn, els.sheetSearch, function(transcript){
+    els.sheetSearch.value = transcript;
+    els.sheetSearch.dispatchEvent(new Event('input'));
+  });
+
+  setupMicButton(els.smartMicBtn, els.smartInput, function(transcript){
+    els.smartInput.value = transcript;
+    runAddressSearch(transcript);
+  });
 
   // ---------- init ----------
   renderRecents();

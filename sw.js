@@ -1,7 +1,5 @@
-const CACHE_NAME = 'gzmn-v1';
+const CACHE_NAME = 'gzmn-v2';
 const APP_SHELL = [
-  './',
-  './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -29,6 +27,23 @@ self.addEventListener('fetch', function(event){
   if (req.method !== 'GET') return;
 
   var url = new URL(req.url);
+  var isHtmlOrRoot = req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/') || url.pathname.endsWith('manifest.json');
+
+  // HTML page + manifest: network-first, so updates show up immediately.
+  // Falls back to cache only if the network is unavailable (offline).
+  if (isHtmlOrRoot){
+    event.respondWith(
+      fetch(req).then(function(res){
+        if (res && res.status === 200){
+          caches.open(CACHE_NAME).then(function(cache){ cache.put(req, res.clone()); });
+        }
+        return res;
+      }).catch(function(){
+        return caches.match(req);
+      })
+    );
+    return;
+  }
 
   // Data JSON files: cache-first, fall back to network, then update cache (stale-while-revalidate)
   if (url.pathname.indexOf('/data/') !== -1) {
@@ -46,7 +61,7 @@ self.addEventListener('fetch', function(event){
     return;
   }
 
-  // App shell: cache-first
+  // Everything else (icons, etc.): cache-first
   event.respondWith(
     caches.match(req).then(function(cached){
       return cached || fetch(req).then(function(res){
