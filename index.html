@@ -1083,18 +1083,14 @@
         }
       }, 1500);
     } else if (isAndroid){
-      var androidCancelled = false;
-      function cancelAndroid(){ androidCancelled = true; }
-      document.addEventListener('visibilitychange', cancelAndroid, { once: true });
-      window.addEventListener('pagehide', cancelAndroid, { once: true });
-      window.addEventListener('blur', cancelAndroid, { once: true });
-      window.location.href = 'geo:' + lat + ',' + lon + '?q=' + lat + ',' + lon + '(' + q + ')';
-      setTimeout(function(){
-        // Only fall back to the website if nothing indicated the app actually opened.
-        if (!androidCancelled && document.visibilityState !== 'hidden'){
-          window.location.href = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
-        }
-      }, 1500);
+      var fallbackUrl = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
+      // Explicit Android intent: tells Chrome to launch Google Maps directly.
+      // Chrome only falls back to browser_fallback_url if the app isn't installed —
+      // it never shows its own "open in app?" web page in between.
+      var intentUrl = 'intent://maps.google.com/maps?q=' + lat + ',' + lon + '(' + q + ')' +
+        '#Intent;scheme=geo;package=com.google.android.apps.maps;S.browser_fallback_url=' +
+        encodeURIComponent(fallbackUrl) + ';end';
+      window.location.href = intentUrl;
     } else {
       window.open('https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon, '_blank');
     }
