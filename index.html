@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>GZMN | Balıkesir Kent Rehberi</title>
+<title>Balıkesir Kent Rehberi</title>
 <meta name="description" content="Balıkesir Altıeylül ve Karesi ilçeleri için mahalle, sokak ve kapı numarası bazlı hızlı adres ve konum rehberi.">
 
 <link rel="manifest" href="manifest.json">
@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GZMN">
+<meta name="apple-mobile-web-app-title" content="Balıkesir Kent Rehberi">
 
 <style>
   :root{
@@ -225,7 +225,7 @@
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   /* ---- Recents / Favorites ---- */
-  .recents-section{ margin-bottom: 22px; }
+  .recents-section{ margin-top: 28px; margin-bottom: 22px; }
   .recents-tabs{
     display:flex; gap:8px; margin-bottom: 10px;
   }
@@ -351,14 +351,6 @@
     <p class="smart-search-hint">Mahalle, sokak ve kapı no'yu tek seferde yaz ya da mikrofona söyle.</p>
   </div>
 
-  <div class="recents-section" id="recents-section" style="display:none;">
-    <div class="recents-tabs">
-      <button class="tab-btn active" type="button" data-tab="recent">Son Aramalar</button>
-      <button class="tab-btn" type="button" data-tab="fav">Favoriler</button>
-    </div>
-    <div class="recents-list" id="recents-list"></div>
-  </div>
-
   <p class="divider-label">veya adım adım seç</p>
 
   <div class="field disabled" id="field-il">
@@ -397,6 +389,14 @@
   </div>
 
   <p class="hint" id="hint">Önce <b>ilçe</b> seçerek başla. Kapı numarası seçmezsen, o sokaktaki <b>en küçük numaralı</b> adres açılır.</p>
+
+  <div class="recents-section" id="recents-section" style="display:none;">
+    <div class="recents-tabs">
+      <button class="tab-btn active" type="button" data-tab="recent">Son Aramalar</button>
+      <button class="tab-btn" type="button" data-tab="fav">Favoriler</button>
+    </div>
+    <div class="recents-list" id="recents-list"></div>
+  </div>
 </div>
 
 <div class="overlay" id="overlay"></div>

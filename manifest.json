@@ -1,6 +1,6 @@
 {
-  "name": "GZMN | Balıkesir Kent Rehberi",
-  "short_name": "GZMN",
+  "name": "Balıkesir Kent Rehberi",
+  "short_name": "Balıkesir Kent Rehberi",
   "description": "Balıkesir Altıeylül ve Karesi ilçeleri için mahalle, sokak ve kapı numarasına göre hızlı adres ve konum rehberi.",
   "start_url": "./index.html",
   "scope": "./",
