@@ -1067,16 +1067,34 @@
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     var isAndroid = /Android/.test(navigator.userAgent);
     var q = encodeURIComponent(label);
+
     if (isIOS){
-      window.location.href = 'https://maps.apple.com/?ll=' + lat + ',' + lon + '&q=' + q;
+      var cancelled = false;
+      function cancel(){ cancelled = true; }
+      document.addEventListener('visibilitychange', cancel, { once: true });
+      window.addEventListener('pagehide', cancel, { once: true });
+      window.addEventListener('blur', cancel, { once: true });
+      // maps:// is the Maps app's own scheme — it never renders a web page first.
+      window.location.href = 'maps://maps.apple.com/?ll=' + lat + ',' + lon + '&q=' + q;
+      setTimeout(function(){
+        if (!cancelled && document.visibilityState !== 'hidden'){
+          // Very rare fallback: only if the maps:// scheme itself failed.
+          window.location.href = 'https://maps.apple.com/?ll=' + lat + ',' + lon + '&q=' + q;
+        }
+      }, 1500);
     } else if (isAndroid){
+      var androidCancelled = false;
+      function cancelAndroid(){ androidCancelled = true; }
+      document.addEventListener('visibilitychange', cancelAndroid, { once: true });
+      window.addEventListener('pagehide', cancelAndroid, { once: true });
+      window.addEventListener('blur', cancelAndroid, { once: true });
       window.location.href = 'geo:' + lat + ',' + lon + '?q=' + lat + ',' + lon + '(' + q + ')';
       setTimeout(function(){
-        // fallback only if we're still here (geo: scheme failed to open an app)
-        if (document.visibilityState !== 'hidden'){
+        // Only fall back to the website if nothing indicated the app actually opened.
+        if (!androidCancelled && document.visibilityState !== 'hidden'){
           window.location.href = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
         }
-      }, 800);
+      }, 1500);
     } else {
       window.open('https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon, '_blank');
     }
