@@ -617,7 +617,7 @@
       updateGoBtn();
 
       if (autoNavigate){
-        var label = 'GZMN: ' + match.ilce + ' / ' + match.mahalle + ' / ' + match.sokak + ' No:' + target[0] + (target[1] ? ' ' + target[1] : '');
+        var label = 'Adres: ' + match.ilce + ' / ' + match.mahalle + ' / ' + match.sokak + ' No:' + target[0] + (target[1] ? ' ' + target[1] : '');
         openInMaps(target[2], target[3], label);
         addRecent({ ilce: match.ilce, mahalle: match.mahalle, sokak: match.sokak, no: target[0], blok: target[1], lat: target[2], lon: target[3] });
         renderRecents();
@@ -841,7 +841,7 @@
       pin.setAttribute('aria-label', 'Haritada aç');
       pin.addEventListener('click', function(e){
         e.stopPropagation();
-        var label = 'GZMN: ' + addressLabel(entry) + ' / ' + addressSubLabel(entry);
+        var label = 'Adres: ' + addressLabel(entry) + ' / ' + addressSubLabel(entry);
         openInMaps(entry.lat, entry.lon, label);
       });
 
@@ -1110,7 +1110,7 @@
       showToast('Bu sokak için adres bulunamadı.');
       return;
     }
-    var label = 'GZMN: ' + state.ilce + ' / ' + state.mahalle + ' / ' + state.sokak + ' No:' + target.no + (target.blok ? ' ' + target.blok : '');
+    var label = 'Adres: ' + state.ilce + ' / ' + state.mahalle + ' / ' + state.sokak + ' No:' + target.no + (target.blok ? ' ' + target.blok : '');
     openInMaps(target.lat, target.lon, label);
     addRecent({ ilce: state.ilce, mahalle: state.mahalle, sokak: state.sokak, no: target.no, blok: target.blok, lat: target.lat, lon: target.lon });
     renderRecents();
@@ -1122,7 +1122,7 @@
     if (!target) return null;
     var addressText = state.ilce + ' / ' + state.mahalle + ' / ' + state.sokak + ' No:' + target.no + (target.blok ? ' ' + target.blok : '');
     var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + target.lat + ',' + target.lon;
-    return { target: target, text: 'GZMN Kent Rehberi - Adres:\n' + addressText + '\nKonum: ' + mapsUrl };
+    return { target: target, text: 'Balıkesir Kent Rehberi - Adres:\n' + addressText + '\nKonum: ' + mapsUrl + '\nUygulama: https://tinyurl.com/3du4zntc' };
   }
 
   els.shareBtn.addEventListener('click', function(){
@@ -1132,7 +1132,7 @@
       return;
     }
     if (navigator.share){
-      navigator.share({ title: 'GZMN Kent Rehberi', text: share.text }).catch(function(){});
+      navigator.share({ title: 'Balıkesir Kent Rehberi', text: share.text }).catch(function(){});
     } else {
       var waUrl = 'https://wa.me/?text=' + encodeURIComponent(share.text);
       var opened = window.open(waUrl, '_blank');
