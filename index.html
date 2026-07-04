@@ -223,6 +223,93 @@
     max-width:80%; text-align:center;
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ---- Recents / Favorites ---- */
+  .recents-section{ margin-bottom: 22px; }
+  .recents-tabs{
+    display:flex; gap:8px; margin-bottom: 10px;
+  }
+  .tab-btn{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-family: inherit;
+    cursor:pointer;
+  }
+  .tab-btn.active{
+    background: rgba(87,214,115,0.14);
+    border-color: rgba(87,214,115,0.5);
+    color: var(--accent);
+  }
+  .recents-list{
+    display:flex; flex-direction:column; gap:8px;
+    max-height: 220px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  .recent-card{
+    display:flex; align-items:center; gap:10px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 11px 10px 11px 14px;
+    cursor:pointer;
+  }
+  .recent-card:active{ border-color:#444; }
+  .recent-card .info{ flex:1; min-width:0; }
+  .recent-card .info .line1{
+    font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .recent-card .info .line2{
+    font-size:12px; color: var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    margin-top:1px;
+  }
+  .recent-card .star-btn, .recent-card .pin-btn{
+    flex-shrink:0; width:34px; height:34px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(255,255,255,0.04); border:none; color: var(--text-dim);
+  }
+  .recent-card .star-btn.active{ color: #F5C542; }
+  .recent-card .pin-btn{ color: var(--accent); }
+  .recent-card .star-btn svg, .recent-card .pin-btn svg{ width:17px; height:17px; }
+  .recents-empty{
+    text-align:center; color:var(--text-dim); font-size:13px; padding: 18px 10px;
+  }
+
+  /* ---- Mic button inside search box ---- */
+  .search-box input.has-mic{ padding-right: 42px; }
+  .mic-btn{
+    position:absolute; right:8px; top:50%; transform:translateY(-50%);
+    width:28px; height:28px; border-radius:50%;
+    display:none; align-items:center; justify-content:center;
+    background: rgba(255,255,255,0.06); border:none; color: var(--text-dim);
+  }
+  .mic-btn svg{ width:15px; height:15px; }
+  .mic-btn.show{ display:flex; }
+  .mic-btn.listening{
+    background: rgba(255,70,70,0.18); color:#ff5c5c;
+    animation: mic-pulse 1s ease-in-out infinite;
+  }
+  @keyframes mic-pulse{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(255,70,70,0.35); }
+    50%{ box-shadow: 0 0 0 6px rgba(255,70,70,0); }
+  }
+
+  /* ---- Action row (go + share) ---- */
+  .action-row{ display:flex; gap:10px; margin-top:8px; }
+  .action-row .go-btn{ margin-top:0; flex:1; }
+  .share-btn{
+    flex-shrink:0; width:56px;
+    display:flex; align-items:center; justify-content:center;
+    background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: var(--radius); color: var(--text);
+    cursor:pointer;
+  }
+  .share-btn svg{ width:20px; height:20px; }
+  .share-btn:disabled{ opacity:0.35; }
+  .share-btn:active{ border-color:#444; }
 </style>
 </head>
 <body>
@@ -235,6 +322,14 @@
       <p class="sub">Balıkesir Kent Rehberi</p>
     </div>
   </header>
+
+  <div class="recents-section" id="recents-section" style="display:none;">
+    <div class="recents-tabs">
+      <button class="tab-btn active" type="button" data-tab="recent">Son Aramalar</button>
+      <button class="tab-btn" type="button" data-tab="fav">Favoriler</button>
+    </div>
+    <div class="recents-list" id="recents-list"></div>
+  </div>
 
   <div class="field disabled" id="field-il">
     <button class="field-btn" type="button" disabled>Balıkesir</button>
@@ -264,7 +359,12 @@
     <span class="clear-x">✕</span>
   </div>
 
-  <button class="go-btn" id="go-btn" disabled>Haritada Aç</button>
+  <div class="action-row">
+    <button class="go-btn" id="go-btn" disabled>Haritada Aç</button>
+    <button class="share-btn" id="share-btn" disabled type="button" aria-label="Paylaş">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+    </button>
+  </div>
 
   <p class="hint" id="hint">Önce <b>ilçe</b> seçerek başla. Kapı numarası seçmezsen, o sokaktaki <b>en küçük numaralı</b> adres açılır.</p>
 </div>
@@ -280,6 +380,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </span>
       <input type="text" id="sheet-search" placeholder="Ara..." autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="mic-btn" id="mic-btn" type="button" aria-label="Sesli arama">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
     </div>
   </div>
   <p class="kapi-note" id="kapi-note" style="display:none;">Kapı no seçmeden de "Haritada Aç" diyebilirsin — en küçük numara açılır.</p>
@@ -311,6 +414,7 @@
     fieldSokak: document.getElementById('field-sokak'),
     fieldKapi: document.getElementById('field-kapi'),
     goBtn: document.getElementById('go-btn'),
+    shareBtn: document.getElementById('share-btn'),
     hint: document.getElementById('hint'),
     overlay: document.getElementById('overlay'),
     sheet: document.getElementById('sheet'),
@@ -319,7 +423,11 @@
     sheetList: document.getElementById('sheet-list'),
     sheetClose: document.getElementById('sheet-close'),
     kapiNote: document.getElementById('kapi-note'),
-    toast: document.getElementById('toast')
+    toast: document.getElementById('toast'),
+    micBtn: document.getElementById('mic-btn'),
+    recentsSection: document.getElementById('recents-section'),
+    recentsList: document.getElementById('recents-list'),
+    tabBtns: document.querySelectorAll('.tab-btn')
   };
 
   function showToast(msg){
@@ -358,7 +466,9 @@
   }
 
   function updateGoBtn(){
-    els.goBtn.disabled = !(state.ilce && state.mahalle && state.sokak);
+    var ready = !!(state.ilce && state.mahalle && state.sokak);
+    els.goBtn.disabled = !ready;
+    els.shareBtn.disabled = !ready;
   }
 
   // ---------- data loading ----------
@@ -371,6 +481,158 @@
       return fetch(DATA_BASE + ILCE_SLUG[ilce] + '/' + slug + '.json').then(function(r){ return r.json(); });
     });
   }
+
+  // ---------- recents / favorites (localStorage) ----------
+  var LS_RECENT = 'gzmn_recents_v1';
+  var LS_FAV = 'gzmn_favorites_v1';
+  var activeTab = 'recent';
+
+  function safeParse(json){
+    try { var v = JSON.parse(json); return Array.isArray(v) ? v : []; } catch(e){ return []; }
+  }
+  function getRecents(){ return safeParse(localStorage.getItem(LS_RECENT) || '[]'); }
+  function getFavorites(){ return safeParse(localStorage.getItem(LS_FAV) || '[]'); }
+  function saveRecents(arr){ try { localStorage.setItem(LS_RECENT, JSON.stringify(arr)); } catch(e){} }
+  function saveFavorites(arr){ try { localStorage.setItem(LS_FAV, JSON.stringify(arr)); } catch(e){} }
+
+  function addrKey(e){ return [e.ilce, e.mahalle, e.sokak, e.no, e.blok].join('|'); }
+
+  function addRecent(entry){
+    var list = getRecents().filter(function(e){ return addrKey(e) !== addrKey(entry); });
+    list.unshift(entry);
+    if (list.length > 10) list = list.slice(0, 10);
+    saveRecents(list);
+  }
+
+  function isFavorite(entry){
+    return getFavorites().some(function(e){ return addrKey(e) === addrKey(entry); });
+  }
+
+  function toggleFavorite(entry){
+    var favs = getFavorites();
+    var key = addrKey(entry);
+    var idx = favs.findIndex(function(e){ return addrKey(e) === key; });
+    if (idx === -1){
+      favs.unshift(entry);
+      if (favs.length > 30) favs = favs.slice(0, 30);
+    } else {
+      favs.splice(idx, 1);
+    }
+    saveFavorites(favs);
+    renderRecents();
+  }
+
+  function removeRecent(entry){
+    var list = getRecents().filter(function(e){ return addrKey(e) !== addrKey(entry); });
+    saveRecents(list);
+    renderRecents();
+  }
+
+  function fillFormFromEntry(entry){
+    state.ilce = entry.ilce;
+    state.mahalle = entry.mahalle;
+    state.sokak = entry.sokak;
+    state.kapi = { no: entry.no, blok: entry.blok, lat: entry.lat, lon: entry.lon };
+    state.mahalleData = null;
+    state.kapiList = [];
+
+    setFieldValue(els.fieldIlce, entry.ilce, true);
+    enableField(els.fieldMahalle, true);
+    setFieldValue(els.fieldMahalle, entry.mahalle, true);
+    enableField(els.fieldSokak, true);
+    setFieldValue(els.fieldSokak, entry.sokak, true);
+    enableField(els.fieldKapi, true);
+    var kapiLabel = (entry.no || '?') + (entry.blok ? ' ' + entry.blok : '');
+    setFieldValue(els.fieldKapi, kapiLabel, true);
+    updateGoBtn();
+    els.hint.innerHTML = 'Adres dolduruldu. Dilersen değiştirip <b>Haritada Aç</b> diyebilirsin.';
+
+    // Load full mahalle data in background so sokak/kapi fields stay editable
+    loadMahalleData(entry.ilce, entry.mahalle).then(function(data){
+      state.mahalleData = data;
+      if (data[entry.sokak]) state.kapiList = data[entry.sokak];
+    }).catch(function(){});
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function addressLabel(entry){
+    return entry.ilce + ' / ' + entry.mahalle;
+  }
+  function addressSubLabel(entry){
+    var kapi = (entry.no || '?') + (entry.blok ? ' ' + entry.blok : '');
+    return entry.sokak + ' · No: ' + kapi;
+  }
+
+  var starIcon = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.7 1.6 7-6.2-3.7L6 21l1.6-7L2.2 9.3l7.1-.7L12 2z"/></svg>';
+  var starOutlineIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.7 1.6 7-6.2-3.7L6 21l1.6-7L2.2 9.3l7.1-.7L12 2z"/></svg>';
+  var pinIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+
+  function renderRecents(){
+    var recents = getRecents();
+    var favs = getFavorites();
+    var hasAny = recents.length > 0 || favs.length > 0;
+    els.recentsSection.style.display = hasAny ? 'block' : 'none';
+    if (!hasAny) return;
+
+    if (activeTab === 'recent' && recents.length === 0 && favs.length > 0) activeTab = 'fav';
+
+    els.tabBtns.forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.tab === activeTab);
+    });
+
+    var list = activeTab === 'recent' ? recents : favs;
+    els.recentsList.innerHTML = '';
+    if (!list.length){
+      var empty = document.createElement('div');
+      empty.className = 'recents-empty';
+      empty.textContent = activeTab === 'recent' ? 'Henüz arama yapılmadı.' : 'Henüz favori eklenmedi. Bir aramanın yıldızına dokun.';
+      els.recentsList.appendChild(empty);
+      return;
+    }
+    var frag = document.createDocumentFragment();
+    list.forEach(function(entry){
+      var card = document.createElement('div');
+      card.className = 'recent-card';
+
+      var info = document.createElement('div');
+      info.className = 'info';
+      info.innerHTML = '<div class="line1">' + escapeHtml(addressLabel(entry)) + '</div><div class="line2">' + escapeHtml(addressSubLabel(entry)) + '</div>';
+      info.addEventListener('click', function(){ fillFormFromEntry(entry); });
+
+      var star = document.createElement('button');
+      star.type = 'button';
+      var fav = isFavorite(entry);
+      star.className = 'star-btn' + (fav ? ' active' : '');
+      star.innerHTML = fav ? starIcon : starOutlineIcon;
+      star.setAttribute('aria-label', 'Favori');
+      star.addEventListener('click', function(e){ e.stopPropagation(); toggleFavorite(entry); });
+
+      var pin = document.createElement('button');
+      pin.type = 'button';
+      pin.className = 'pin-btn';
+      pin.innerHTML = pinIcon;
+      pin.setAttribute('aria-label', 'Haritada aç');
+      pin.addEventListener('click', function(e){
+        e.stopPropagation();
+        var label = 'GZMN: ' + addressLabel(entry) + ' / ' + addressSubLabel(entry);
+        openInMaps(entry.lat, entry.lon, label);
+      });
+
+      card.appendChild(info);
+      card.appendChild(star);
+      card.appendChild(pin);
+      frag.appendChild(card);
+    });
+    els.recentsList.appendChild(frag);
+  }
+
+  els.tabBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      activeTab = btn.dataset.tab;
+      renderRecents();
+    });
+  });
 
   // ---------- sheet (picker) ----------
   var currentPicker = null; // {type, items, onSelect, renderItem, filterFn}
@@ -494,7 +756,11 @@
   });
 
   els.fieldSokak.querySelector('.field-btn').addEventListener('click', function(){
-    if (els.fieldSokak.classList.contains('disabled') || !state.mahalleData) return;
+    if (els.fieldSokak.classList.contains('disabled')) return;
+    if (!state.mahalleData){
+      showToast('Veriler yükleniyor, birazdan tekrar dene.');
+      return;
+    }
     var sokaklar = Object.keys(state.mahalleData).sort(function(a,b){ return a.localeCompare(b,'tr'); });
     var items = sokaklar.map(function(sk){
       var count = state.mahalleData[sk].length;
@@ -519,6 +785,10 @@
 
   els.fieldKapi.querySelector('.field-btn').addEventListener('click', function(){
     if (els.fieldKapi.classList.contains('disabled')) return;
+    if (!state.kapiList.length){
+      showToast('Veriler yükleniyor, birazdan tekrar dene.');
+      return;
+    }
     var items = state.kapiList.map(function(addr, i){
       var no = addr[0], blok = addr[1];
       var label = (no || '?') + (blok ? ' ' + blok : '');
@@ -602,7 +872,69 @@
     }
     var label = 'GZMN: ' + state.ilce + ' / ' + state.mahalle + ' / ' + state.sokak + ' No:' + target.no + (target.blok ? ' ' + target.blok : '');
     openInMaps(target.lat, target.lon, label);
+    addRecent({ ilce: state.ilce, mahalle: state.mahalle, sokak: state.sokak, no: target.no, blok: target.blok, lat: target.lat, lon: target.lon });
+    renderRecents();
   });
+
+  // ---------- share ----------
+  function buildShareText(){
+    var target = pickTarget();
+    if (!target) return null;
+    var addressText = state.ilce + ' / ' + state.mahalle + ' / ' + state.sokak + ' No:' + target.no + (target.blok ? ' ' + target.blok : '');
+    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + target.lat + ',' + target.lon;
+    return { target: target, text: 'GZMN Kent Rehberi - Adres:\n' + addressText + '\nKonum: ' + mapsUrl };
+  }
+
+  els.shareBtn.addEventListener('click', function(){
+    var share = buildShareText();
+    if (!share){
+      showToast('Önce bir sokak seç.');
+      return;
+    }
+    if (navigator.share){
+      navigator.share({ title: 'GZMN Kent Rehberi', text: share.text }).catch(function(){});
+    } else {
+      var waUrl = 'https://wa.me/?text=' + encodeURIComponent(share.text);
+      var opened = window.open(waUrl, '_blank');
+      if (!opened && navigator.clipboard){
+        navigator.clipboard.writeText(share.text).then(function(){
+          showToast('Adres panoya kopyalandı.');
+        }).catch(function(){});
+      }
+    }
+  });
+
+  // ---------- voice search ----------
+  var SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognitionCtor){
+    els.micBtn.classList.add('show');
+    els.sheetSearch.classList.add('has-mic');
+    var recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'tr-TR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    els.micBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      try {
+        els.micBtn.classList.add('listening');
+        recognition.start();
+      } catch(err){
+        els.micBtn.classList.remove('listening');
+      }
+    });
+
+    recognition.onresult = function(event){
+      var transcript = event.results[0][0].transcript;
+      els.sheetSearch.value = transcript;
+      els.sheetSearch.dispatchEvent(new Event('input'));
+    };
+    recognition.onerror = function(){ els.micBtn.classList.remove('listening'); };
+    recognition.onend = function(){ els.micBtn.classList.remove('listening'); };
+  }
+
+  // ---------- init ----------
+  renderRecents();
 
   // ---------- service worker ----------
   if ('serviceWorker' in navigator){
