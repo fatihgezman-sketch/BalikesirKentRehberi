@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>GZMN | Balıkesir Kent Rehberi</title>
+<meta name="description" content="Balıkesir Altıeylül ve Karesi ilçeleri için mahalle, sokak ve kapı numarası bazlı hızlı adres ve konum rehberi.">
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0E0F11">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GZMN">
+
+<style>
+  :root{
+    --bg: #0E0F11;
+    --panel: #16171a;
+    --panel-border: #2a2b2f;
+    --text: #ECECEC;
+    --text-dim: #9a9ba0;
+    --accent: #57D673;
+    --accent-dark: #2FBE5C;
+    --accent-text: #06210E;
+    --radius: 14px;
+    --gap: 14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    overscroll-behavior-y: contain;
+  }
+  .wrap{
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 28px 20px calc(40px + env(safe-area-inset-bottom));
+    min-height: 100vh;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom: 30px;
+  }
+  header img{
+    width:46px; height:46px; border-radius:12px; flex-shrink:0;
+  }
+  header .titles{ line-height:1.15; }
+  header .brand{
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    margin:0;
+  }
+  header .sub{
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--text-dim);
+    margin: 2px 0 0;
+  }
+
+  .field{
+    position: relative;
+    margin-bottom: var(--gap);
+  }
+  .field.disabled{ opacity: 0.4; pointer-events: none; }
+
+  .field-btn{
+    width:100%;
+    text-align:left;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 16px;
+    padding: 17px 44px 17px 18px;
+    font-family: inherit;
+    display:block;
+    position:relative;
+    cursor:pointer;
+    transition: border-color .15s ease;
+  }
+  .field-btn:active{ border-color: #444; }
+  .field-btn.placeholder{ color: var(--text-dim); }
+  .field-btn .chev{
+    position:absolute; right:16px; top:50%; transform:translateY(-50%);
+    width:12px; height:12px; pointer-events:none;
+    border-right:2px solid var(--text-dim); border-bottom:2px solid var(--text-dim);
+    transform: translateY(-65%) rotate(45deg);
+  }
+  .field-btn .clear-x{
+    position:absolute; right:14px; top:50%; transform:translateY(-50%);
+    width:26px; height:26px; border-radius:50%;
+    display:none; align-items:center; justify-content:center;
+    color: var(--text-dim); font-size:16px; background: rgba(255,255,255,0.06);
+  }
+  .field.has-value .field-btn{ padding-right: 44px; }
+  .field.has-value .chev{ display:none; }
+  .field.has-value .clear-x{ display:flex; }
+
+  .go-btn{
+    width:100%;
+    padding: 18px;
+    font-size: 17px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: var(--accent-text);
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform .08s ease, background .15s ease;
+  }
+  .go-btn:active{ transform: scale(0.98); background: var(--accent-dark); }
+  .go-btn:disabled{ background:#2a2f2b; color:#5c645e; }
+
+  .hint{
+    text-align:center;
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-top: 22px;
+    line-height:1.5;
+  }
+  .hint b{ color: var(--text); font-weight:600; }
+
+  /* ---- Sheet / modal picker ---- */
+  .overlay{
+    position:fixed; inset:0; background: rgba(0,0,0,0.55);
+    opacity:0; pointer-events:none; transition: opacity .18s ease;
+    z-index: 50;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0;
+    max-width: 520px; margin:0 auto;
+    background: #17181b;
+    border-radius: 20px 20px 0 0;
+    border: 1px solid var(--panel-border);
+    border-bottom:none;
+    transform: translateY(100%);
+    transition: transform .22s ease;
+    z-index: 51;
+    height: 82vh;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .sheet.open{ transform: translateY(0); }
+
+  .sheet-handle{
+    width:38px; height:4px; background:#3a3b40; border-radius:3px;
+    margin: 10px auto 4px;
+  }
+  .sheet-header{
+    padding: 6px 18px 12px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .sheet-title{
+    font-size:17px; font-weight:700; margin: 4px 0 12px;
+  }
+  .search-box{
+    position:relative;
+  }
+  .search-box input{
+    width:100%;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 12px 14px 12px 38px;
+    font-size:16px;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .search-box input::placeholder{ color: var(--text-dim); }
+  .search-box .icon{
+    position:absolute; left:12px; top:50%; transform:translateY(-50%);
+    width:16px;height:16px; opacity:0.5;
+  }
+  .search-box .icon svg{ width:100%; height:100%; }
+
+  .sheet-list{
+    flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding: 6px 8px 20px;
+  }
+  .sheet-item{
+    padding: 15px 12px;
+    font-size:16px;
+    border-radius: 10px;
+    cursor:pointer;
+    display:flex; justify-content:space-between; align-items:center;
+    gap: 10px;
+  }
+  .sheet-item:active{ background: rgba(255,255,255,0.06); }
+  .sheet-item .meta{ color: var(--text-dim); font-size:13px; flex-shrink:0; }
+  .sheet-item mark{ background: transparent; color: var(--accent); font-weight:700; }
+  .sheet-empty{
+    text-align:center; color:var(--text-dim); font-size:14px; padding: 40px 20px;
+  }
+  .sheet-close{
+    position:absolute; top:10px; right:14px;
+    width:32px;height:32px; border-radius:50%;
+    background: rgba(255,255,255,0.06); border:none; color:var(--text-dim);
+    font-size:16px; display:flex; align-items:center; justify-content:center;
+  }
+
+  .kapi-note{
+    font-size:12px; color:var(--text-dim); padding: 0 12px 8px;
+  }
+
+  ::-webkit-scrollbar{ width:0; height:0; }
+
+  .toast{
+    position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px);
+    background:#26282c; color:var(--text); padding:12px 18px; border-radius:12px;
+    font-size:14px; opacity:0; transition:all .25s ease; z-index:80; pointer-events:none;
+    max-width:80%; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <img src="icons/icon-192.png" alt="GZMN logosu">
+    <div class="titles">
+      <p class="brand">GZMN</p>
+      <p class="sub">Balıkesir Kent Rehberi</p>
+    </div>
+  </header>
+
+  <div class="field disabled" id="field-il">
+    <button class="field-btn" type="button" disabled>Balıkesir</button>
+  </div>
+
+  <div class="field" id="field-ilce" data-target="ilce">
+    <button class="field-btn placeholder" type="button">İlçe Seçiniz</button>
+    <span class="chev"></span>
+    <span class="clear-x">✕</span>
+  </div>
+
+  <div class="field disabled" id="field-mahalle" data-target="mahalle">
+    <button class="field-btn placeholder" type="button">Mahalle Seçiniz</button>
+    <span class="chev"></span>
+    <span class="clear-x">✕</span>
+  </div>
+
+  <div class="field disabled" id="field-sokak" data-target="sokak">
+    <button class="field-btn placeholder" type="button">Sokak / Cadde Seçiniz</button>
+    <span class="chev"></span>
+    <span class="clear-x">✕</span>
+  </div>
+
+  <div class="field disabled" id="field-kapi" data-target="kapi">
+    <button class="field-btn placeholder" type="button">Kapı No Seçiniz (opsiyonel)</button>
+    <span class="chev"></span>
+    <span class="clear-x">✕</span>
+  </div>
+
+  <button class="go-btn" id="go-btn" disabled>Haritada Aç</button>
+
+  <p class="hint" id="hint">Önce <b>ilçe</b> seçerek başla. Kapı numarası seçmezsen, o sokaktaki <b>en küçük numaralı</b> adres açılır.</p>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <button class="sheet-close" id="sheet-close">✕</button>
+  <div class="sheet-header">
+    <p class="sheet-title" id="sheet-title">Seçiniz</p>
+    <div class="search-box">
+      <span class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input type="text" id="sheet-search" placeholder="Ara..." autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+  </div>
+  <p class="kapi-note" id="kapi-note" style="display:none;">Kapı no seçmeden de "Haritada Aç" diyebilirsin — en küçük numara açılır.</p>
+  <div class="sheet-list" id="sheet-list"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var DATA_BASE = "data/";
+  var state = {
+    ilce: null,        // "Altıeylül" | "Karesi"
+    mahalle: null,
+    sokak: null,
+    kapi: null,         // {no, blok, lat, lon} or null
+    index: null,        // full index.json {ilce: {mahalle: slug}}
+    mahalleData: null,  // loaded json for current mahalle {sokak: [[no,blok,lat,lon],...]}
+    kapiList: []        // current sokak's address list
+  };
+
+  var ILCE_SLUG = { "Altıeylül": "altieylul", "Karesi": "karesi" };
+
+  var els = {
+    fieldIlce: document.getElementById('field-ilce'),
+    fieldMahalle: document.getElementById('field-mahalle'),
+    fieldSokak: document.getElementById('field-sokak'),
+    fieldKapi: document.getElementById('field-kapi'),
+    goBtn: document.getElementById('go-btn'),
+    hint: document.getElementById('hint'),
+    overlay: document.getElementById('overlay'),
+    sheet: document.getElementById('sheet'),
+    sheetTitle: document.getElementById('sheet-title'),
+    sheetSearch: document.getElementById('sheet-search'),
+    sheetList: document.getElementById('sheet-list'),
+    sheetClose: document.getElementById('sheet-close'),
+    kapiNote: document.getElementById('kapi-note'),
+    toast: document.getElementById('toast')
+  };
+
+  function showToast(msg){
+    els.toast.textContent = msg;
+    els.toast.classList.add('show');
+    setTimeout(function(){ els.toast.classList.remove('show'); }, 2200);
+  }
+
+  function setFieldValue(field, label, hasValue){
+    var btn = field.querySelector('.field-btn');
+    btn.textContent = label;
+    btn.classList.toggle('placeholder', !hasValue);
+    field.classList.toggle('has-value', !!hasValue);
+  }
+
+  function enableField(field, enabled){
+    field.classList.toggle('disabled', !enabled);
+  }
+
+  function resetFrom(level){
+    // level: 'mahalle' | 'sokak' | 'kapi' — reset this and everything after
+    if (level === 'ilce' || level === 'mahalle'){
+      state.mahalle = null; state.mahalleData = null;
+      setFieldValue(els.fieldMahalle, 'Mahalle Seçiniz', false);
+      enableField(els.fieldMahalle, level==='ilce' ? !!state.ilce : true);
+    }
+    if (level === 'ilce' || level === 'mahalle' || level === 'sokak'){
+      state.sokak = null; state.kapiList = [];
+      setFieldValue(els.fieldSokak, 'Sokak / Cadde Seçiniz', false);
+      enableField(els.fieldSokak, false);
+    }
+    state.kapi = null;
+    setFieldValue(els.fieldKapi, 'Kapı No Seçiniz (opsiyonel)', false);
+    enableField(els.fieldKapi, false);
+    updateGoBtn();
+  }
+
+  function updateGoBtn(){
+    els.goBtn.disabled = !(state.ilce && state.mahalle && state.sokak);
+  }
+
+  // ---------- data loading ----------
+  var indexPromise = fetch(DATA_BASE + 'index.json').then(function(r){ return r.json(); });
+
+  function loadMahalleData(ilce, mahalle){
+    return indexPromise.then(function(idx){
+      state.index = idx;
+      var slug = idx[ilce][mahalle];
+      return fetch(DATA_BASE + ILCE_SLUG[ilce] + '/' + slug + '.json').then(function(r){ return r.json(); });
+    });
+  }
+
+  // ---------- sheet (picker) ----------
+  var currentPicker = null; // {type, items, onSelect, renderItem, filterFn}
+
+  function openSheet(config){
+    currentPicker = config;
+    els.sheetTitle.textContent = config.title;
+    els.sheetSearch.value = '';
+    els.sheetSearch.placeholder = config.searchPlaceholder || 'Ara...';
+    els.kapiNote.style.display = config.showKapiNote ? 'block' : 'none';
+    renderList(config.items);
+    els.overlay.classList.add('open');
+    els.sheet.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function(){ els.sheetSearch.focus({preventScroll:true}); }, 260);
+  }
+
+  function closeSheet(){
+    els.overlay.classList.remove('open');
+    els.sheet.classList.remove('open');
+    document.body.style.overflow = '';
+    els.sheetSearch.blur();
+    currentPicker = null;
+  }
+
+  function highlight(text, q){
+    if (!q) return escapeHtml(text);
+    var idx = text.toLocaleLowerCase('tr').indexOf(q.toLocaleLowerCase('tr'));
+    if (idx === -1) return escapeHtml(text);
+    return escapeHtml(text.slice(0,idx)) + '<mark>' + escapeHtml(text.slice(idx, idx+q.length)) + '</mark>' + escapeHtml(text.slice(idx+q.length));
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function renderList(items, query){
+    els.sheetList.innerHTML = '';
+    if (!items.length){
+      var empty = document.createElement('div');
+      empty.className = 'sheet-empty';
+      empty.textContent = 'Sonuç bulunamadı.';
+      els.sheetList.appendChild(empty);
+      return;
+    }
+    var frag = document.createDocumentFragment();
+    items.forEach(function(item){
+      var row = document.createElement('div');
+      row.className = 'sheet-item';
+      row.innerHTML = '<span>' + highlight(item.label, query) + '</span>' + (item.meta ? '<span class="meta">'+escapeHtml(item.meta)+'</span>' : '');
+      row.addEventListener('click', function(){
+        currentPicker.onSelect(item);
+        closeSheet();
+      });
+      frag.appendChild(row);
+    });
+    els.sheetList.appendChild(frag);
+  }
+
+  els.sheetSearch.addEventListener('input', function(){
+    if (!currentPicker) return;
+    var q = els.sheetSearch.value.trim();
+    var qLower = q.toLocaleLowerCase('tr');
+    var filtered = q ? currentPicker.items.filter(function(it){
+      return it.searchText.indexOf(qLower) !== -1;
+    }) : currentPicker.items;
+    renderList(filtered, q);
+  });
+
+  els.sheetClose.addEventListener('click', closeSheet);
+  els.overlay.addEventListener('click', closeSheet);
+
+  // ---------- field click handlers ----------
+  els.fieldIlce.querySelector('.field-btn').addEventListener('click', function(){
+    var items = ['Altıeylül', 'Karesi'].map(function(name){
+      return { label: name, searchText: name.toLocaleLowerCase('tr'), value: name };
+    });
+    openSheet({
+      title: 'İlçe Seçiniz',
+      searchPlaceholder: 'İlçe ara...',
+      items: items,
+      onSelect: function(item){
+        state.ilce = item.value;
+        setFieldValue(els.fieldIlce, item.value, true);
+        resetFrom('ilce');
+        enableField(els.fieldMahalle, true);
+        els.hint.innerHTML = 'Şimdi <b>mahalle</b> seç.';
+      }
+    });
+  });
+
+  els.fieldMahalle.querySelector('.field-btn').addEventListener('click', function(){
+    if (els.fieldMahalle.classList.contains('disabled')) return;
+    indexPromise.then(function(idx){
+      var mahalleler = Object.keys(idx[state.ilce]).sort(function(a,b){ return a.localeCompare(b,'tr'); });
+      var items = mahalleler.map(function(m){
+        return { label: m, searchText: m.toLocaleLowerCase('tr'), value: m };
+      });
+      openSheet({
+        title: 'Mahalle Seçiniz',
+        searchPlaceholder: 'Mahalle ara...',
+        items: items,
+        onSelect: function(item){
+          state.mahalle = item.value;
+          setFieldValue(els.fieldMahalle, item.value, true);
+          resetFrom('mahalle');
+          setFieldValue(els.fieldSokak, 'Yükleniyor...', false);
+          enableField(els.fieldSokak, false);
+          loadMahalleData(state.ilce, state.mahalle).then(function(data){
+            state.mahalleData = data;
+            setFieldValue(els.fieldSokak, 'Sokak / Cadde Seçiniz', false);
+            enableField(els.fieldSokak, true);
+            els.hint.innerHTML = 'Şimdi <b>sokak / cadde</b> seç.';
+          }).catch(function(){
+            showToast('Veri yüklenemedi, tekrar dene.');
+          });
+        }
+      });
+    });
+  });
+
+  els.fieldSokak.querySelector('.field-btn').addEventListener('click', function(){
+    if (els.fieldSokak.classList.contains('disabled') || !state.mahalleData) return;
+    var sokaklar = Object.keys(state.mahalleData).sort(function(a,b){ return a.localeCompare(b,'tr'); });
+    var items = sokaklar.map(function(sk){
+      var count = state.mahalleData[sk].length;
+      return { label: sk, searchText: sk.toLocaleLowerCase('tr'), value: sk, meta: count + ' adres' };
+    });
+    openSheet({
+      title: 'Sokak / Cadde Seçiniz',
+      searchPlaceholder: 'Sokak ara (harf veya sayı)...',
+      items: items,
+      onSelect: function(item){
+        state.sokak = item.value;
+        setFieldValue(els.fieldSokak, item.value, true);
+        state.kapi = null;
+        setFieldValue(els.fieldKapi, 'Kapı No Seçiniz (opsiyonel)', false);
+        enableField(els.fieldKapi, true);
+        state.kapiList = state.mahalleData[state.sokak];
+        updateGoBtn();
+        els.hint.innerHTML = 'Kapı no seçebilir ya da direkt <b>Haritada Aç</b> diyebilirsin.';
+      }
+    });
+  });
+
+  els.fieldKapi.querySelector('.field-btn').addEventListener('click', function(){
+    if (els.fieldKapi.classList.contains('disabled')) return;
+    var items = state.kapiList.map(function(addr, i){
+      var no = addr[0], blok = addr[1];
+      var label = (no || '?') + (blok ? ' ' + blok : '');
+      return { label: label, searchText: label.toLowerCase(), value: i, meta: null };
+    });
+    openSheet({
+      title: 'Kapı No Seçiniz',
+      searchPlaceholder: 'Kapı no ara...',
+      items: items,
+      showKapiNote: true,
+      onSelect: function(item){
+        var addr = state.kapiList[item.value];
+        state.kapi = { no: addr[0], blok: addr[1], lat: addr[2], lon: addr[3] };
+        setFieldValue(els.fieldKapi, item.label, true);
+        updateGoBtn();
+      }
+    });
+  });
+
+  // ---------- clear buttons ----------
+  document.querySelectorAll('.clear-x').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var field = btn.closest('.field');
+      var target = field.dataset.target;
+      if (target === 'ilce'){
+        state.ilce = null;
+        setFieldValue(els.fieldIlce, 'İlçe Seçiniz', false);
+        enableField(els.fieldMahalle, false);
+        resetFrom('ilce');
+        els.hint.innerHTML = 'Önce <b>ilçe</b> seçerek başla.';
+      } else if (target === 'mahalle'){
+        state.mahalle = null; state.mahalleData = null;
+        setFieldValue(els.fieldMahalle, 'Mahalle Seçiniz', false);
+        resetFrom('mahalle');
+      } else if (target === 'sokak'){
+        state.sokak = null; state.kapiList = [];
+        setFieldValue(els.fieldSokak, 'Sokak / Cadde Seçiniz', false);
+        resetFrom('sokak');
+      } else if (target === 'kapi'){
+        state.kapi = null;
+        setFieldValue(els.fieldKapi, 'Kapı No Seçiniz (opsiyonel)', false);
+        updateGoBtn();
+      }
+    });
+  });
+
+  // ---------- go / open in maps ----------
+  function openInMaps(lat, lon, label){
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var isAndroid = /Android/.test(navigator.userAgent);
+    var q = encodeURIComponent(label);
+    if (isIOS){
+      window.location.href = 'https://maps.apple.com/?ll=' + lat + ',' + lon + '&q=' + q;
+    } else if (isAndroid){
+      window.location.href = 'geo:' + lat + ',' + lon + '?q=' + lat + ',' + lon + '(' + q + ')';
+      setTimeout(function(){
+        // fallback only if we're still here (geo: scheme failed to open an app)
+        if (document.visibilityState !== 'hidden'){
+          window.location.href = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
+        }
+      }, 800);
+    } else {
+      window.open('https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon, '_blank');
+    }
+  }
+
+  function pickTarget(){
+    if (state.kapi) return state.kapi;
+    if (!state.kapiList.length) return null;
+    // smallest kapi_no already first due to pre-sorting in build step
+    var addr = state.kapiList[0];
+    return { no: addr[0], blok: addr[1], lat: addr[2], lon: addr[3] };
+  }
+
+  els.goBtn.addEventListener('click', function(){
+    var target = pickTarget();
+    if (!target){
+      showToast('Bu sokak için adres bulunamadı.');
+      return;
+    }
+    var label = 'GZMN: ' + state.ilce + ' / ' + state.mahalle + ' / ' + state.sokak + ' No:' + target.no + (target.blok ? ' ' + target.blok : '');
+    openInMaps(target.lat, target.lon, label);
+  });
+
+  // ---------- service worker ----------
+  if ('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+    });
+  }
+})();
+</script>
+</body>
+</html>
