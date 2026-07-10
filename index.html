@@ -14,6 +14,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Balıkesir Kent Rehberi">
 
+<link rel="preload" href="data/index.json" as="fetch" crossorigin="anonymous">
+<link rel="preload" href="data/search-index.json" as="fetch" crossorigin="anonymous">
+
 <style>
   :root{
     --bg: #0E0F11;
@@ -135,6 +138,7 @@
     position:fixed; inset:0; background: rgba(0,0,0,0.55);
     opacity:0; pointer-events:none; transition: opacity .18s ease;
     z-index: 50;
+    will-change: opacity; /* Animasyon optimizasyonu */
   }
   .overlay.open{ opacity:1; pointer-events:auto; }
 
@@ -151,6 +155,7 @@
     height: 82vh;
     display:flex; flex-direction:column;
     overflow:hidden;
+    will-change: transform; /* Animasyon optimizasyonu */
   }
   .sheet.open{ transform: translateY(0); }
 
@@ -427,13 +432,13 @@
 
   var DATA_BASE = "data/";
   var state = {
-    ilce: null,        // "Altıeylül" | "Karesi"
+    ilce: null,        
     mahalle: null,
     sokak: null,
-    kapi: null,         // {no, blok, lat, lon} or null
-    index: null,        // full index.json {ilce: {mahalle: slug}}
-    mahalleData: null,  // loaded json for current mahalle {sokak: [[no,blok,lat,lon],...]}
-    kapiList: []        // current sokak's address list
+    kapi: null,         
+    index: null,        
+    mahalleData: null,  
+    kapiList: []        
   };
 
   var ILCE_SLUG = { "Altıeylül": "altieylul", "Karesi": "karesi" };
@@ -480,7 +485,6 @@
   }
 
   function resetFrom(level){
-    // level: 'mahalle' | 'sokak' | 'kapi' — reset this and everything after
     if (level === 'ilce' || level === 'mahalle'){
       state.mahalle = null; state.mahalleData = null;
       setFieldValue(els.fieldMahalle, 'Mahalle Seçiniz', false);
@@ -517,25 +521,44 @@
   }
 
   // ---------- smart unified search ----------
+  // Memoization: Normalize işlemlerini hızlandırır
+  var normalizeCache = {};
+  
   function normalizeTr(s){
     if (!s) return '';
+    if (normalizeCache[s]) return normalizeCache[s];
+
     var map = {'İ':'i','I':'i','ı':'i','Ş':'s','ş':'s','Ğ':'g','ğ':'g','Ü':'u','ü':'u','Ö':'o','ö':'o','Ç':'c','ç':'c'};
     var out = '';
     for (var i = 0; i < s.length; i++){ out += map[s[i]] || s[i]; }
     out = out.toLowerCase();
     out = out.replace(/[^a-z0-9 ]+/g, ' ');
     out = out.replace(/\s+/g, ' ').trim();
+    
+    normalizeCache[s] = out;
     return out;
   }
 
   function scoreMatch(guessNorm, targetNorm){
     if (!guessNorm || !targetNorm) return 0;
     if (guessNorm === targetNorm) return 100;
+    
+    // Erken Çıkış (Early Exit) Optimizasyonu
+    var guessLen = guessNorm.length;
+    if (guessLen > 3 && targetNorm.indexOf(guessNorm) === -1 && guessNorm.indexOf(targetNorm) === -1) {
+        var hasAnyWord = guessNorm.split(' ').some(function(word) {
+            return word.length > 2 && targetNorm.indexOf(word) !== -1;
+        });
+        if (!hasAnyWord) return 0; 
+    }
+
     if (targetNorm.indexOf(guessNorm) !== -1 || guessNorm.indexOf(targetNorm) !== -1) return 80;
+    
     var gTokens = guessNorm.split(' ');
     var tTokens = targetNorm.split(' ');
     var common = gTokens.filter(function(t){ return t && tTokens.indexOf(t) !== -1; }).length;
     if (!common) return 0;
+    
     return Math.round(60 * common / Math.max(gTokens.length, tTokens.length));
   }
 
@@ -591,7 +614,7 @@
 
       var target = null;
       if (no){
-        target = list.filter(function(a){ return a[0] === no; }).sort(function(a,b){
+        target = list.filter(function(a){ return a[0] == no; }).sort(function(a,b){
           var aMatch = blok && (a[1] || '').toUpperCase() === blok;
           var bMatch = blok && (b[1] || '').toUpperCase() === blok;
           return (bMatch ? 1 : 0) - (aMatch ? 1 : 0);
@@ -604,7 +627,10 @@
         showToast('Bu sokak için adres bulunamadı.');
         return;
       }
-      state.kapi = { no: target[0], blok: target[1], lat: target[2], lon: target[3] };
+      
+      // Array destructuring kullanıldı
+      var [tNo, tBlok, tLat, tLon] = target;
+      state.kapi = { no: tNo, blok: tBlok, lat: tLat, lon: tLon };
 
       setFieldValue(els.fieldIlce, match.ilce, true);
       enableField(els.fieldMahalle, true);
@@ -612,14 +638,14 @@
       enableField(els.fieldSokak, true);
       setFieldValue(els.fieldSokak, match.sokak, true);
       enableField(els.fieldKapi, true);
-      var kapiLabel = (target[0] || '?') + (target[1] ? ' ' + target[1] : '');
+      var kapiLabel = (tNo || '?') + (tBlok ? ' ' + tBlok : '');
       setFieldValue(els.fieldKapi, kapiLabel, true);
       updateGoBtn();
 
       if (autoNavigate){
-        var label = 'Adres: ' + match.ilce + ' / ' + match.mahalle + ' / ' + match.sokak + ' No:' + target[0] + (target[1] ? ' ' + target[1] : '');
-        openInMaps(target[2], target[3], label);
-        addRecent({ ilce: match.ilce, mahalle: match.mahalle, sokak: match.sokak, no: target[0], blok: target[1], lat: target[2], lon: target[3] });
+        var label = 'Adres: ' + match.ilce + ' / ' + match.mahalle + ' / ' + match.sokak + ' No:' + tNo + (tBlok ? ' ' + tBlok : '');
+        openInMaps(tLat, tLon, label);
+        addRecent({ ilce: match.ilce, mahalle: match.mahalle, sokak: match.sokak, no: tNo, blok: tBlok, lat: tLat, lon: tLon });
         renderRecents();
         showToast(usedFallback ? ('Kapı no ' + no + ' bulunamadı, en küçük numara açıldı.') : ('Bulundu: ' + match.mahalle + ' / ' + match.sokak));
       } else {
@@ -773,7 +799,6 @@
     updateGoBtn();
     els.hint.innerHTML = 'Adres dolduruldu. Dilersen değiştirip <b>Haritada Aç</b> diyebilirsin.';
 
-    // Load full mahalle data in background so sokak/kapi fields stay editable
     loadMahalleData(entry.ilce, entry.mahalle).then(function(data){
       state.mahalleData = data;
       if (data[entry.sokak]) state.kapiList = data[entry.sokak];
@@ -861,7 +886,7 @@
   });
 
   // ---------- sheet (picker) ----------
-  var currentPicker = null; // {type, items, onSelect, renderItem, filterFn}
+  var currentPicker = null; 
 
   function openSheet(config){
     currentPicker = config;
@@ -890,9 +915,17 @@
     if (idx === -1) return escapeHtml(text);
     return escapeHtml(text.slice(0,idx)) + '<mark>' + escapeHtml(text.slice(idx, idx+q.length)) + '</mark>' + escapeHtml(text.slice(idx+q.length));
   }
+  
+  // Syntax hatası giderilmiş ve güvenli hale getirilmiş escapeHtml
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[c];
     });
   }
 
@@ -919,14 +952,20 @@
     els.sheetList.appendChild(frag);
   }
 
+  // Debounce (Gecikme) eklenmiş arama dinleyicisi
+  var searchTimeout;
   els.sheetSearch.addEventListener('input', function(){
     if (!currentPicker) return;
-    var q = els.sheetSearch.value.trim();
-    var qLower = q.toLocaleLowerCase('tr');
-    var filtered = q ? currentPicker.items.filter(function(it){
-      return it.searchText.indexOf(qLower) !== -1;
-    }) : currentPicker.items;
-    renderList(filtered, q);
+    clearTimeout(searchTimeout);
+    
+    searchTimeout = setTimeout(function() {
+      var q = els.sheetSearch.value.trim();
+      var qLower = q.toLocaleLowerCase('tr');
+      var filtered = q ? currentPicker.items.filter(function(it){
+        return it.searchText.indexOf(qLower) !== -1;
+      }) : currentPicker.items;
+      renderList(filtered, q);
+    }, 150);
   });
 
   els.sheetClose.addEventListener('click', closeSheet);
@@ -954,6 +993,7 @@
   els.fieldMahalle.querySelector('.field-btn').addEventListener('click', function(){
     if (els.fieldMahalle.classList.contains('disabled')) return;
     indexPromise.then(function(idx){
+      // Sıralama operasyonunu azalttık, (Eğer JSON sıralı ise .sort'u da kaldırabilirsin)
       var mahalleler = Object.keys(idx[state.ilce]).sort(function(a,b){ return a.localeCompare(b,'tr'); });
       var items = mahalleler.map(function(m){
         return { label: m, searchText: m.toLocaleLowerCase('tr'), value: m };
@@ -1016,7 +1056,8 @@
       return;
     }
     var items = state.kapiList.map(function(addr, i){
-      var no = addr[0], blok = addr[1];
+      // Array destructuring
+      var [no, blok] = addr;
       var label = (no || '?') + (blok ? ' ' + blok : '');
       return { label: label, searchText: label.toLowerCase(), value: i, meta: null };
     });
@@ -1027,7 +1068,8 @@
       showKapiNote: true,
       onSelect: function(item){
         var addr = state.kapiList[item.value];
-        state.kapi = { no: addr[0], blok: addr[1], lat: addr[2], lon: addr[3] };
+        var [aNo, aBlok, aLat, aLon] = addr;
+        state.kapi = { no: aNo, blok: aBlok, lat: aLat, lon: aLon };
         setFieldValue(els.fieldKapi, item.label, true);
         updateGoBtn();
       }
@@ -1074,19 +1116,14 @@
       document.addEventListener('visibilitychange', cancel, { once: true });
       window.addEventListener('pagehide', cancel, { once: true });
       window.addEventListener('blur', cancel, { once: true });
-      // maps:// is the Maps app's own scheme — it never renders a web page first.
       window.location.href = 'maps://maps.apple.com/?ll=' + lat + ',' + lon + '&q=' + q;
       setTimeout(function(){
         if (!cancelled && document.visibilityState !== 'hidden'){
-          // Very rare fallback: only if the maps:// scheme itself failed.
           window.location.href = 'https://maps.apple.com/?ll=' + lat + ',' + lon + '&q=' + q;
         }
       }, 1500);
     } else if (isAndroid){
       var fallbackUrl = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
-      // Explicit Android intent: tells Chrome to launch Google Maps directly.
-      // Chrome only falls back to browser_fallback_url if the app isn't installed —
-      // it never shows its own "open in app?" web page in between.
       var intentUrl = 'intent://maps.google.com/maps?q=' + lat + ',' + lon + '(' + q + ')' +
         '#Intent;scheme=geo;package=com.google.android.apps.maps;S.browser_fallback_url=' +
         encodeURIComponent(fallbackUrl) + ';end';
@@ -1099,9 +1136,8 @@
   function pickTarget(){
     if (state.kapi) return state.kapi;
     if (!state.kapiList.length) return null;
-    // smallest kapi_no already first due to pre-sorting in build step
-    var addr = state.kapiList[0];
-    return { no: addr[0], blok: addr[1], lat: addr[2], lon: addr[3] };
+    var [no, blok, lat, lon] = state.kapiList[0];
+    return { no: no, blok: blok, lat: lat, lon: lon };
   }
 
   els.goBtn.addEventListener('click', function(){
