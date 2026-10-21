@@ -15,13 +15,13 @@
 <meta name="apple-mobile-web-app-title" content="Balıkesir Kent Rehberi">
 
 <link rel="preload" href="data/index.json" as="fetch" crossorigin="anonymous">
-<link rel="preload" href="data/search-index.json" as="fetch" crossorigin="anonymous">
 
 <style>
   :root{
     --bg: #0E0F11;
     --panel: #16171a;
     --panel-border: #2a2b2f;
+    --sheet-bg: #17181b;
     --text: #ECECEC;
     --text-dim: #9a9ba0;
     --accent: #57D673;
@@ -29,6 +29,29 @@
     --accent-text: #06210E;
     --radius: 14px;
     --gap: 14px;
+    --btn-hover: rgba(255,255,255,0.06);
+    --btn-disabled-bg: #2a2f2b;
+    --btn-disabled-text: #5c645e;
+    --toast-bg: #26282c;
+    --overlay-bg: rgba(0,0,0,0.55);
+    --handle-color: #3a3b40;
+  }
+  [data-theme="light"]{
+    --bg: #F4F6F8;
+    --panel: #FFFFFF;
+    --panel-border: #E2E5E9;
+    --sheet-bg: #FFFFFF;
+    --text: #191B1F;
+    --text-dim: #6B7280;
+    --accent: #16A34A;
+    --accent-dark: #15803D;
+    --accent-text: #FFFFFF;
+    --btn-hover: rgba(0,0,0,0.05);
+    --btn-disabled-bg: #E5E7EB;
+    --btn-disabled-text: #9CA3AF;
+    --toast-bg: #1F2937;
+    --overlay-bg: rgba(0,0,0,0.45);
+    --handle-color: #D1D5DB;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html,body{
@@ -38,18 +61,24 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     min-height: 100vh;
     overscroll-behavior-y: contain;
+    transition: background-color .2s ease, color .2s ease;
   }
   .wrap{
     max-width: 520px;
     margin: 0 auto;
-    padding: 28px 20px calc(40px + env(safe-area-inset-bottom));
+    padding: calc(36px + env(safe-area-inset-top, 24px)) 20px calc(90px + env(safe-area-inset-bottom));
     min-height: 100vh;
   }
   header{
     display:flex;
     align-items:center;
-    gap:14px;
+    justify-content:space-between;
     margin-bottom: 30px;
+  }
+  .brand-group{
+    display:flex;
+    align-items:center;
+    gap:14px;
   }
   header img{
     width:46px; height:46px; border-radius:12px; flex-shrink:0;
@@ -67,6 +96,22 @@
     color: var(--text-dim);
     margin: 2px 0 0;
   }
+  .theme-toggle{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease, transform .1s ease;
+    flex-shrink: 0;
+  }
+  .theme-toggle:active{ transform: scale(0.92); }
+  .theme-toggle svg{ width: 20px; height: 20px; stroke: currentColor; }
 
   .field{
     position: relative;
@@ -89,7 +134,7 @@
     cursor:pointer;
     transition: border-color .15s ease;
   }
-  .field-btn:active{ border-color: #444; }
+  .field-btn:active{ border-color: var(--text-dim); }
   .field-btn.placeholder{ color: var(--text-dim); }
   .field-btn .chev{
     position:absolute; right:16px; top:50%; transform:translateY(-50%);
@@ -101,7 +146,7 @@
     position:absolute; right:14px; top:50%; transform:translateY(-50%);
     width:26px; height:26px; border-radius:50%;
     display:none; align-items:center; justify-content:center;
-    color: var(--text-dim); font-size:16px; background: rgba(255,255,255,0.06);
+    color: var(--text-dim); font-size:16px; background: var(--btn-hover);
   }
   .field.has-value .field-btn{ padding-right: 44px; }
   .field.has-value .chev{ display:none; }
@@ -122,7 +167,7 @@
     transition: transform .08s ease, background .15s ease;
   }
   .go-btn:active{ transform: scale(0.98); background: var(--accent-dark); }
-  .go-btn:disabled{ background:#2a2f2b; color:#5c645e; }
+  .go-btn:disabled{ background: var(--btn-disabled-bg); color: var(--btn-disabled-text); }
 
   .hint{
     text-align:center;
@@ -135,7 +180,7 @@
 
   /* ---- Sheet / modal picker ---- */
   .overlay{
-    position:fixed; inset:0; background: rgba(0,0,0,0.55);
+    position:fixed; inset:0; background: var(--overlay-bg);
     opacity:0; pointer-events:none; transition: opacity .18s ease;
     z-index: 50;
     will-change: opacity; /* Animasyon optimizasyonu */
@@ -145,7 +190,7 @@
   .sheet{
     position:fixed; left:0; right:0; bottom:0;
     max-width: 520px; margin:0 auto;
-    background: #17181b;
+    background: var(--sheet-bg);
     border-radius: 20px 20px 0 0;
     border: 1px solid var(--panel-border);
     border-bottom:none;
@@ -160,7 +205,7 @@
   .sheet.open{ transform: translateY(0); }
 
   .sheet-handle{
-    width:38px; height:4px; background:#3a3b40; border-radius:3px;
+    width:38px; height:4px; background: var(--handle-color); border-radius:3px;
     margin: 10px auto 4px;
   }
   .sheet-header{
@@ -202,7 +247,7 @@
     display:flex; justify-content:space-between; align-items:center;
     gap: 10px;
   }
-  .sheet-item:active{ background: rgba(255,255,255,0.06); }
+  .sheet-item:active{ background: var(--btn-hover); }
   .sheet-item .meta{ color: var(--text-dim); font-size:13px; flex-shrink:0; }
   .sheet-item mark{ background: transparent; color: var(--accent); font-weight:700; }
   .sheet-empty{
@@ -211,8 +256,9 @@
   .sheet-close{
     position:absolute; top:10px; right:14px;
     width:32px;height:32px; border-radius:50%;
-    background: rgba(255,255,255,0.06); border:none; color:var(--text-dim);
+    background: var(--btn-hover); border:none; color:var(--text-dim);
     font-size:16px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
   }
 
   .kapi-note{
@@ -223,7 +269,7 @@
 
   .toast{
     position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px);
-    background:#26282c; color:var(--text); padding:12px 18px; border-radius:12px;
+    background: var(--toast-bg); color: #FFFFFF; padding:12px 18px; border-radius:12px;
     font-size:14px; opacity:0; transition:all .25s ease; z-index:80; pointer-events:none;
     max-width:80%; text-align:center;
   }
@@ -262,7 +308,7 @@
     padding: 11px 10px 11px 14px;
     cursor:pointer;
   }
-  .recent-card:active{ border-color:#444; }
+  .recent-card:active{ border-color: var(--text-dim); }
   .recent-card .info{ flex:1; min-width:0; }
   .recent-card .info .line1{
     font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -271,16 +317,63 @@
     font-size:12px; color: var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     margin-top:1px;
   }
-  .recent-card .star-btn, .recent-card .pin-btn{
+  .recent-card .star-btn, .recent-card .pin-btn, .recent-card .del-btn{
     flex-shrink:0; width:34px; height:34px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
-    background: rgba(255,255,255,0.04); border:none; color: var(--text-dim);
+    background: var(--btn-hover); border:none; color: var(--text-dim);
+    cursor:pointer;
+    transition: color .15s ease, background-color .15s ease;
   }
   .recent-card .star-btn.active{ color: #F5C542; }
   .recent-card .pin-btn{ color: var(--accent); }
-  .recent-card .star-btn svg, .recent-card .pin-btn svg{ width:17px; height:17px; }
+  .recent-card .del-btn:hover{ color: #ef4444; }
+  .recent-card .del-btn:active{ color: #dc2626; transform: scale(0.92); }
+  .recent-card .star-btn svg, .recent-card .pin-btn svg, .recent-card .del-btn svg{ width:17px; height:17px; }
   .recents-empty{
     text-align:center; color:var(--text-dim); font-size:13px; padding: 18px 10px;
+  }
+
+  /* ---- Confirmation Modal ---- */
+  .confirm-modal-overlay{
+    position: fixed; inset: 0; background: var(--overlay-bg);
+    opacity: 0; pointer-events: none; transition: opacity .18s ease;
+    z-index: 90; display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .confirm-modal-overlay.open{ opacity: 1; pointer-events: auto; }
+  .confirm-modal{
+    background: var(--sheet-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    padding: 22px 20px 18px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.3);
+    transform: scale(0.92);
+    transition: transform .18s ease;
+  }
+  .confirm-modal-overlay.open .confirm-modal{ transform: scale(1); }
+  .confirm-title{
+    font-size: 17px; font-weight: 700; margin: 0 0 8px; color: var(--text);
+  }
+  .confirm-desc{
+    font-size: 14px; color: var(--text-dim); margin: 0 0 18px; line-height: 1.45;
+    word-break: break-word;
+  }
+  .confirm-actions{
+    display: flex; gap: 10px; justify-content: flex-end;
+  }
+  .confirm-btn{
+    padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600;
+    font-family: inherit; cursor: pointer; border: none;
+    transition: opacity .15s ease, transform .08s ease;
+  }
+  .confirm-btn:active{ transform: scale(0.96); }
+  .confirm-btn.cancel{
+    background: var(--panel); border: 1px solid var(--panel-border); color: var(--text);
+  }
+  .confirm-btn.danger{
+    background: #ef4444; color: #FFFFFF;
   }
 
   /* ---- Mic button inside search box ---- */
@@ -289,7 +382,8 @@
     position:absolute; right:8px; top:50%; transform:translateY(-50%);
     width:28px; height:28px; border-radius:50%;
     display:none; align-items:center; justify-content:center;
-    background: rgba(255,255,255,0.06); border:none; color: var(--text-dim);
+    background: var(--btn-hover); border:none; color: var(--text-dim);
+    cursor:pointer;
   }
   .mic-btn svg{ width:15px; height:15px; }
   .mic-btn.show{ display:flex; }
@@ -314,7 +408,58 @@
   }
   .share-btn svg{ width:20px; height:20px; }
   .share-btn:disabled{ opacity:0.35; }
-  .share-btn:active{ border-color:#444; }
+  .share-btn:active{ border-color: var(--text-dim); }
+
+  /* ---- Support Ad Button ---- */
+  .support-ad-card{
+    background: var(--panel);
+    border: 1px dashed var(--accent);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-top: 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .support-ad-info{
+    flex: 1;
+    min-width: 0;
+  }
+  .support-ad-title{
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .support-ad-sub{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin: 0;
+    line-height: 1.35;
+  }
+  .support-ad-btn{
+    background: var(--accent);
+    color: var(--accent-text);
+    border: none;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform .08s ease, background .15s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .support-ad-btn:active{ transform: scale(0.95); background: var(--accent-dark); }
+  .support-ad-btn svg{ width: 15px; height: 15px; fill: currentColor; }
 
   /* ---- Smart unified search ---- */
   .smart-search{ margin-bottom: 20px; }
@@ -336,11 +481,27 @@
 
 <div class="wrap">
   <header>
-    <img src="icons/icon-192.png" alt="GZMN logosu">
-    <div class="titles">
-      <p class="brand">GZMN</p>
-      <p class="sub">Balıkesir Kent Rehberi</p>
+    <div class="brand-group">
+      <img src="icons/icon-192.png" alt="GZMN logosu">
+      <div class="titles">
+        <p class="brand">Balıkesir Adreleri</p>
+        <p class="sub">Altıeylül-Karesi Adres Bulma Uygulaması</p>
+      </div>
     </div>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Tema Değiştir" title="Açık/Koyu Tema">
+      <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Sun icon (when dark, clicking switches to light) -->
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </svg>
+    </button>
   </header>
 
   <div class="smart-search">
@@ -395,6 +556,20 @@
 
   <p class="hint" id="hint">Önce <b>ilçe</b> seçerek başla. Kapı numarası seçmezsen, o sokaktaki <b>en küçük numaralı</b> adres açılır.</p>
 
+  <!-- Uygulamayı Destekle Butonu (Ödüllü / Yüksek Gelirli Reklam) -->
+  <div class="support-ad-card" id="support-ad-card">
+    <div class="support-ad-info">
+      <p class="support-ad-title">
+        <span>❤️</span> Uygulamayı Destekle
+      </p>
+      <p class="support-ad-sub">Geliştirmeye katkıda bulunmak için kısa bir reklam izleyebilirsiniz.</p>
+    </div>
+    <button class="support-ad-btn" id="support-ad-btn" type="button">
+      <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <span>İzle</span>
+    </button>
+  </div>
+
   <div class="recents-section" id="recents-section" style="display:none;">
     <div class="recents-tabs">
       <button class="tab-btn active" type="button" data-tab="recent">Son Aramalar</button>
@@ -425,6 +600,18 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Silme Onay Modalı -->
+<div class="confirm-modal-overlay" id="confirm-modal-overlay">
+  <div class="confirm-modal" role="dialog" aria-modal="true">
+    <div class="confirm-title">Aramayı Sil</div>
+    <div class="confirm-desc" id="confirm-modal-text">Bu adresi son aramalardan silmek istediğinize emin misiniz?</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn cancel" id="confirm-btn-cancel" type="button">Hayır</button>
+      <button class="confirm-btn danger" id="confirm-btn-ok" type="button">Evet, Sil</button>
+    </div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -464,8 +651,84 @@
     smartMicBtn: document.getElementById('smart-mic-btn'),
     recentsSection: document.getElementById('recents-section'),
     recentsList: document.getElementById('recents-list'),
-    tabBtns: document.querySelectorAll('.tab-btn')
+    tabBtns: document.querySelectorAll('.tab-btn'),
+    themeToggle: document.getElementById('theme-toggle'),
+    themeIcon: document.getElementById('theme-icon'),
+    confirmOverlay: document.getElementById('confirm-modal-overlay'),
+    confirmText: document.getElementById('confirm-modal-text'),
+    confirmCancel: document.getElementById('confirm-btn-cancel'),
+    confirmOk: document.getElementById('confirm-btn-ok'),
+    supportAdBtn: document.getElementById('support-ad-btn')
   };
+
+  // ---------- confirmation dialog ----------
+  var pendingConfirmAction = null;
+  function showConfirm(text, onConfirm){
+    els.confirmText.textContent = text;
+    pendingConfirmAction = onConfirm;
+    els.confirmOverlay.classList.add('open');
+  }
+  function closeConfirm(){
+    els.confirmOverlay.classList.remove('open');
+    pendingConfirmAction = null;
+  }
+  els.confirmCancel.addEventListener('click', closeConfirm);
+  els.confirmOverlay.addEventListener('click', function(e){
+    if (e.target === els.confirmOverlay) closeConfirm();
+  });
+  els.confirmOk.addEventListener('click', function(){
+    if (pendingConfirmAction){
+      var fn = pendingConfirmAction;
+      pendingConfirmAction = null;
+      fn();
+    }
+    closeConfirm();
+  });
+
+  // ---------- theme toggle ----------
+  var THEME_KEY = 'gzmn_theme';
+  var sunIconSvg = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+  var moonIconSvg = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+
+  function applyTheme(theme, save){
+    var isLight = theme === 'light';
+    if (isLight){
+      document.documentElement.setAttribute('data-theme', 'light');
+      if (els.themeIcon) els.themeIcon.innerHTML = moonIconSvg;
+      var metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) metaTheme.setAttribute('content', '#F4F6F8');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      if (els.themeIcon) els.themeIcon.innerHTML = sunIconSvg;
+      var metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) metaTheme.setAttribute('content', '#0E0F11');
+    }
+    if (save){
+      try { localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark'); } catch(e){}
+    }
+  }
+
+  function initTheme(){
+    var savedTheme = null;
+    try { savedTheme = localStorage.getItem(THEME_KEY); } catch(e){}
+    if (savedTheme){
+      applyTheme(savedTheme, false);
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches){
+      applyTheme('light', false);
+    } else {
+      applyTheme('dark', false);
+    }
+  }
+
+  if (els.themeToggle){
+    els.themeToggle.addEventListener('click', function(){
+      var current = document.documentElement.getAttribute('data-theme');
+      var newTheme = current === 'light' ? 'dark' : 'light';
+      applyTheme(newTheme, true);
+    });
+  }
+
+  initTheme();
 
   function showToast(msg){
     els.toast.textContent = msg;
@@ -509,7 +772,15 @@
 
   // ---------- data loading ----------
   var indexPromise = fetch(DATA_BASE + 'index.json').then(function(r){ return r.json(); });
-  var searchIndexPromise = fetch(DATA_BASE + 'search-index.json').then(function(r){ return r.json(); });
+  var searchIndexPromise = null;
+  function getSearchIndex(){
+    if (!searchIndexPromise){
+      searchIndexPromise = fetch(DATA_BASE + 'search-index.json').then(function(r){ return r.json(); });
+    }
+    return searchIndexPromise;
+  }
+  // Akıllı arama kutusuna dokunulduğu an arka planda indirmeye başla
+  els.smartInput.addEventListener('focus', function(){ getSearchIndex(); }, { once: true });
   var reverseNameCache = null;
 
   function loadMahalleData(ilce, mahalle){
@@ -521,7 +792,6 @@
   }
 
   // ---------- smart unified search ----------
-  // Memoization: Normalize işlemlerini hızlandırır
   var normalizeCache = {};
   
   function normalizeTr(s){
@@ -543,23 +813,27 @@
     if (!guessNorm || !targetNorm) return 0;
     if (guessNorm === targetNorm) return 100;
     
-    // Erken Çıkış (Early Exit) Optimizasyonu
     var guessLen = guessNorm.length;
-    if (guessLen > 3 && targetNorm.indexOf(guessNorm) === -1 && guessNorm.indexOf(targetNorm) === -1) {
-        var hasAnyWord = guessNorm.split(' ').some(function(word) {
-            return word.length > 2 && targetNorm.indexOf(word) !== -1;
-        });
-        if (!hasAnyWord) return 0; 
-    }
+    var targetLen = targetNorm.length;
 
-    if (targetNorm.indexOf(guessNorm) !== -1 || guessNorm.indexOf(targetNorm) !== -1) return 80;
+    // Tam alt dize eşleşmesi
+    if (targetNorm.indexOf(guessNorm) !== -1){
+      return Math.round(80 * (guessLen / targetLen)) + 15;
+    }
+    if (guessNorm.indexOf(targetNorm) !== -1){
+      return Math.round(75 * (targetLen / guessLen)) + 15;
+    }
     
     var gTokens = guessNorm.split(' ');
     var tTokens = targetNorm.split(' ');
-    var common = gTokens.filter(function(t){ return t && tTokens.indexOf(t) !== -1; }).length;
+    var common = 0;
+    for (var i = 0; i < gTokens.length; i++){
+      var gt = gTokens[i];
+      if (gt && tTokens.indexOf(gt) !== -1) common++;
+    }
     if (!common) return 0;
     
-    return Math.round(60 * common / Math.max(gTokens.length, tTokens.length));
+    return Math.round(65 * common / Math.max(gTokens.length, tTokens.length));
   }
 
   function getReverseNames(idx){
@@ -575,32 +849,55 @@
   }
 
   var MAHALLE_KEYWORD_RE = /\b(mahallesinde|mahallesi|mahallenin|mah\.?|mahalle)\b/i;
-  var SOKAK_KEYWORD_RE = /\b(sokağında|sokağı|sokagi|sokak\w*|caddesinde|caddesi|cadde\w*|sk\.?|cd\.?)\b/i;
-
-  function splitAtKeyword(text, re){
-    var m = text.match(re);
-    if (!m) return null;
-    return { before: text.slice(0, m.index).trim(), after: text.slice(m.index + m[0].length).trim() };
-  }
+  var SOKAK_KEYWORD_RE = /\b(sokağında|sokağı|sokagi|sokak|caddesinde|caddesi|cadde|bulvarı|bulvari|bulvar|yolu|yol|küme\s*evleri|kume\s*evleri|sk\.?|cd\.?|blv\.?)\b/i;
+  var NO_KEYWORD_RE = /\b(?:no|numara|kapi\s*no|kapi|d)\s*[:.]?\s*(\d+)\s*(?:\/|\s|-)?\s*([a-zA-ZçÇğĞıİöÖşŞüÜ0-9]{0,3})/i;
 
   function parseAddressQuery(raw){
     var text = raw.trim();
-    var mahalleGuess = null, sokakGuess = null, no = null, blok = '';
+    var no = null, blok = '';
 
-    var mSplit = splitAtKeyword(text, MAHALLE_KEYWORD_RE);
-    if (mSplit){ mahalleGuess = mSplit.before; text = mSplit.after; }
-
-    var sSplit = splitAtKeyword(text, SOKAK_KEYWORD_RE);
-    if (sSplit){ sokakGuess = sSplit.before.replace(/[.,]+$/, '').trim(); text = sSplit.after; }
-
-    var noMatch = text.match(/(\d+)\s*([a-zA-ZçÇğĞıİöÖşŞüÜ]{0,2})/);
-    if (noMatch){ no = noMatch[1]; blok = (noMatch[2] || '').toUpperCase(); }
-
-    if (!mahalleGuess && !sokakGuess){
-      sokakGuess = raw.trim();
+    // 1. Kapı ve blok numarasını yakala (örn: No: 12/A, Kapı 5, 14-B)
+    var noKwMatch = text.match(NO_KEYWORD_RE);
+    if (noKwMatch){
+      no = noKwMatch[1];
+      blok = (noKwMatch[2] || '').toUpperCase();
+      text = text.replace(noKwMatch[0], ' ').trim();
+    } else {
+      var standaloneNoMatch = text.match(/(?:^|\s)(\d+)(?:\s*[\/-]?\s*([a-zA-ZçÇğĞıİöÖşŞüÜ]))?(?=\s|$)/);
+      if (standaloneNoMatch && standaloneNoMatch.index > 3){
+        no = standaloneNoMatch[1];
+        blok = (standaloneNoMatch[2] || '').toUpperCase();
+        text = (text.slice(0, standaloneNoMatch.index) + ' ' + text.slice(standaloneNoMatch.index + standaloneNoMatch[0].length)).trim();
+      }
     }
 
-    return { mahalleGuess: mahalleGuess, sokakGuess: sokakGuess, no: no, blok: blok };
+    var mahalleGuess = null, sokakGuess = null;
+
+    // 2. Mahalle ayrıştırma
+    var mMatch = text.match(MAHALLE_KEYWORD_RE);
+    if (mMatch){
+      mahalleGuess = text.slice(0, mMatch.index).trim();
+      text = text.slice(mMatch.index + mMatch[0].length).trim();
+    }
+
+    // 3. Sokak ayrıştırma
+    var sMatch = text.match(SOKAK_KEYWORD_RE);
+    if (sMatch){
+      sokakGuess = (text.slice(0, sMatch.index) + ' ' + sMatch[0]).trim();
+    } else {
+      if (mahalleGuess){
+        sokakGuess = text.trim();
+      } else {
+        sokakGuess = raw.replace(NO_KEYWORD_RE, '').trim();
+      }
+    }
+
+    return { 
+      mahalleGuess: mahalleGuess ? mahalleGuess.replace(/[.,]+$/, '').trim() : null, 
+      sokakGuess: sokakGuess ? sokakGuess.replace(/[.,]+$/, '').trim() : null, 
+      no: no, 
+      blok: blok 
+    };
   }
 
   function resolveAndGo(match, no, blok, autoNavigate){
@@ -614,7 +911,7 @@
 
       var target = null;
       if (no){
-        target = list.filter(function(a){ return a[0] == no; }).sort(function(a,b){
+        target = list.filter(function(a){ return String(a[0]) === String(no); }).sort(function(a,b){
           var aMatch = blok && (a[1] || '').toUpperCase() === blok;
           var bMatch = blok && (b[1] || '').toUpperCase() === blok;
           return (bMatch ? 1 : 0) - (aMatch ? 1 : 0);
@@ -628,8 +925,7 @@
         return;
       }
       
-      // Array destructuring kullanıldı
-      var [tNo, tBlok, tLat, tLon] = target;
+      var tNo = target[0], tBlok = target[1], tLat = target[2], tLon = target[3];
       state.kapi = { no: tNo, blok: tBlok, lat: tLat, lon: tLon };
 
       setFieldValue(els.fieldIlce, match.ilce, true);
@@ -647,7 +943,7 @@
         openInMaps(tLat, tLon, label);
         addRecent({ ilce: match.ilce, mahalle: match.mahalle, sokak: match.sokak, no: tNo, blok: tBlok, lat: tLat, lon: tLon });
         renderRecents();
-        showToast(usedFallback ? ('Kapı no ' + no + ' bulunamadı, en küçük numara açıldı.') : ('Bulundu: ' + match.mahalle + ' / ' + match.sokak));
+        showToast(usedFallback ? ('Kapı no ' + no + ' bulunamadı, en yakın adres açıldı.') : ('Bulundu: ' + match.mahalle + ' / ' + match.sokak));
       } else {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -675,7 +971,7 @@
       showToast('Bir adres yaz ya da söyle.');
       return;
     }
-    Promise.all([indexPromise, searchIndexPromise]).then(function(vals){
+    Promise.all([indexPromise, getSearchIndex()]).then(function(vals){
       var idx = vals[0], sIdx = vals[1];
       getReverseNames(idx);
       var parsed = parseAddressQuery(rawQuery);
@@ -686,30 +982,41 @@
       ['Altıeylül', 'Karesi'].forEach(function(ilce){
         Object.keys(idx[ilce]).forEach(function(name){
           var slug = idx[ilce][name];
-          var score = mahalleGuessNorm ? scoreMatch(mahalleGuessNorm, normalizeTr(name)) : 10;
-          if (score > 0) mahalleCandidates.push({ ilce: ilce, mahalle: name, slug: slug, score: score });
+          var score = mahalleGuessNorm ? scoreMatch(mahalleGuessNorm, normalizeTr(name)) : 0;
+          if (!mahalleGuessNorm || score > 0){
+            mahalleCandidates.push({ ilce: ilce, mahalle: name, slug: slug, score: score });
+          }
         });
       });
-      mahalleCandidates.sort(function(a, b){ return b.score - a.score; });
-      var topMahalleler = mahalleCandidates.slice(0, 6);
-      if (!topMahalleler.length){
-        ['Altıeylül', 'Karesi'].forEach(function(ilce){
-          Object.keys(idx[ilce]).forEach(function(name){
-            topMahalleler.push({ ilce: ilce, mahalle: name, slug: idx[ilce][name], score: 0 });
-          });
-        });
+
+      var topMahalleler;
+      if (mahalleGuessNorm && mahalleCandidates.length > 0){
+        mahalleCandidates.sort(function(a, b){ return b.score - a.score; });
+        // Eğer kullanıcı belirgin bir mahalle adı yazdıysa sadece en yüksek skorlu mahallelere odaklan
+        topMahalleler = mahalleCandidates[0].score >= 80 ? mahalleCandidates.slice(0, 3) : mahalleCandidates.slice(0, 6);
+      } else {
+        topMahalleler = mahalleCandidates;
       }
 
       var results = [];
       topMahalleler.forEach(function(mc){
         var sokaklar = (sIdx[mc.ilce] && sIdx[mc.ilce][mc.slug]) || [];
-        sokaklar.forEach(function(sokak){
-          var sScore = sokakGuessNorm ? scoreMatch(sokakGuessNorm, normalizeTr(sokak)) : 5;
+        for (var s = 0; s < sokaklar.length; s++){
+          var sokak = sokaklar[s];
+          var sScore = sokakGuessNorm ? scoreMatch(sokakGuessNorm, normalizeTr(sokak)) : 0;
           if (sScore > 0){
-            results.push({ ilce: mc.ilce, mahalle: mc.mahalle, slug: mc.slug, sokak: sokak, score: mc.score * 100 + sScore });
+            results.push({ 
+              ilce: mc.ilce, 
+              mahalle: mc.mahalle, 
+              slug: mc.slug, 
+              sokak: sokak, 
+              score: (mc.score * 100) + sScore,
+              exactSokak: sScore >= 95
+            });
           }
-        });
+        }
       });
+
       results.sort(function(a, b){ return b.score - a.score; });
 
       if (!results.length){
@@ -719,12 +1026,14 @@
 
       var top = results[0];
       var second = results[1];
-      var confident = top.score >= 8000 && (!second || (top.score - second.score) >= 1500);
+      // Eğer kullanıcı hem mahalleyi hem sokağı çok net vermişse veya sokak %100 net ve tekse doğrudan haritada aç
+      var confident = (top.score >= 8000 && (!second || (top.score - second.score) >= 1200)) || 
+                      (top.exactSokak && (!second || second.score < top.score - 2000));
 
       if (confident){
         resolveAndGo(top, parsed.no, parsed.blok, true);
       } else {
-        showSearchResultsSheet(results.slice(0, 8), parsed);
+        showSearchResultsSheet(results.slice(0, 10), parsed);
       }
     });
   }
@@ -818,6 +1127,7 @@
   var starIcon = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.7 1.6 7-6.2-3.7L6 21l1.6-7L2.2 9.3l7.1-.7L12 2z"/></svg>';
   var starOutlineIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.7 1.6 7-6.2-3.7L6 21l1.6-7L2.2 9.3l7.1-.7L12 2z"/></svg>';
   var pinIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+  var trashIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
 
   function renderRecents(){
     var recents = getRecents();
@@ -873,6 +1183,25 @@
       card.appendChild(info);
       card.appendChild(star);
       card.appendChild(pin);
+
+      if (activeTab === 'recent'){
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'del-btn';
+        del.innerHTML = trashIcon;
+        del.setAttribute('aria-label', 'Sil');
+        del.setAttribute('title', 'Son aramalardan sil');
+        del.addEventListener('click', function(e){
+          e.stopPropagation();
+          var addrText = addressLabel(entry) + ' - ' + addressSubLabel(entry);
+          showConfirm('"' + addrText + '" adresini son aramalardan silmek istediğinize emin misiniz?', function(){
+            removeRecent(entry);
+            showToast('Adres son aramalardan silindi.');
+          });
+        });
+        card.appendChild(del);
+      }
+
       frag.appendChild(card);
     });
     els.recentsList.appendChild(frag);
@@ -1107,8 +1436,8 @@
   // ---------- go / open in maps ----------
   function openInMaps(lat, lon, label){
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    var isAndroid = /Android/.test(navigator.userAgent);
     var q = encodeURIComponent(label);
+    var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
 
     if (isIOS){
       var cancelled = false;
@@ -1119,17 +1448,26 @@
       window.location.href = 'maps://maps.apple.com/?ll=' + lat + ',' + lon + '&q=' + q;
       setTimeout(function(){
         if (!cancelled && document.visibilityState !== 'hidden'){
-          window.location.href = 'https://maps.apple.com/?ll=' + lat + ',' + lon + '&q=' + q;
+          window.location.href = mapsUrl;
         }
       }, 1500);
-    } else if (isAndroid){
-      var fallbackUrl = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon;
-      var intentUrl = 'intent://maps.google.com/maps?q=' + lat + ',' + lon + '(' + q + ')' +
-        '#Intent;scheme=geo;package=com.google.android.apps.maps;S.browser_fallback_url=' +
-        encodeURIComponent(fallbackUrl) + ';end';
-      window.location.href = intentUrl;
-    } else {
-      window.open('https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lon, '_blank');
+      return;
+    }
+
+    // Android & Native WebView
+    // geo URI: Android cihazlarda doğrudan Google Haritalar uygulamasını açar
+    var geoUrl = 'geo:' + lat + ',' + lon + '?q=' + lat + ',' + lon + '(' + q + ')';
+    
+    try {
+      window.location.href = geoUrl;
+      setTimeout(function(){
+        // Eğer cihazda harita uygulaması yoksa veya webview engellerse web linkini dener
+        if (document.visibilityState !== 'hidden'){
+          window.open(mapsUrl, '_system');
+        }
+      }, 1200);
+    } catch(e) {
+      window.open(mapsUrl, '_blank');
     }
   }
 
@@ -1158,7 +1496,7 @@
     if (!target) return null;
     var addressText = state.ilce + ' / ' + state.mahalle + ' / ' + state.sokak + ' No:' + target.no + (target.blok ? ' ' + target.blok : '');
     var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + target.lat + ',' + target.lon;
-    return { target: target, text: 'Balıkesir Kent Rehberi - Adres:\n' + addressText + '\nKonum: ' + mapsUrl + '\nUygulama: https://tinyurl.com/3du4zntc' };
+    return { target: target, text: 'Balıkesir Kent Rehberi - Adres:\n' + addressText + '\nKonum: ' + mapsUrl + '\nUygulama: https://play.google.com/store/apps/details?id=balikesir.adresleri' };
   }
 
   els.shareBtn.addEventListener('click', function(){
@@ -1217,6 +1555,67 @@
     els.smartInput.value = transcript;
     runAddressSearch(transcript);
   });
+
+  // ---------- AdMob / Ads integration (Native & Web Fallback) ----------
+  var AdMobBridge = {
+    isNative: function(){
+      return typeof window.Capacitor !== 'undefined' && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('AdMob');
+    },
+    init: function(){
+      if (!this.isNative()) return;
+      try {
+        var AdMob = window.Capacitor.Plugins.AdMob;
+        AdMob.initialize({ requestTrackingAuthorization: true }).then(function(){
+          AdMobBridge.showBanner();
+        }).catch(function(){});
+      } catch(e){}
+    },
+    showBanner: function(){
+      if (!this.isNative()) return;
+      try {
+        var AdMob = window.Capacitor.Plugins.AdMob;
+        AdMob.showBanner({
+          adId: 'ca-app-pub-7055336032867276/8812973679', // Gerçek Banner ID
+          adSize: 'BANNER',
+          position: 'BOTTOM_CENTER',
+          margin: 0,
+          isTesting: false
+        }).catch(function(){});
+      } catch(e){}
+    },
+    showRewarded: function(){
+      if (!this.isNative()){
+        showToast('Reklam desteğiniz için teşekkürler! (Mobil uygulamada video açılır)');
+        return;
+      }
+      showToast('Reklam hazırlanıyor...');
+      try {
+        var AdMob = window.Capacitor.Plugins.AdMob;
+        AdMob.prepareRewardVideoAd({
+          adId: 'ca-app-pub-7055336032867276/2247565325', // Gerçek Ödüllü ID
+          isTesting: false
+        }).then(function(){
+          return AdMob.showRewardVideoAd();
+        }).then(function(){
+          showToast('Desteğiniz için teşekkür ederiz! ❤️');
+        }).catch(function(){
+          showToast('Reklam şu an yüklenemedi, lütfen biraz sonra tekrar deneyin.');
+        });
+      } catch(e){
+        showToast('Reklam yüklenirken bir hata oluştu.');
+      }
+    }
+  };
+
+  if (els.supportAdBtn){
+    els.supportAdBtn.addEventListener('click', function(){
+      AdMobBridge.showRewarded();
+    });
+  }
+
+  // Cihaz hazır olduğunda AdMob'u başlat
+  document.addEventListener('deviceready', function(){ AdMobBridge.init(); }, false);
+  if (typeof window.Capacitor !== 'undefined') { AdMobBridge.init(); }
 
   // ---------- init ----------
   renderRecents();
