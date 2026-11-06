@@ -16,7 +16,20 @@
 
 <link rel="preload" href="data/index.json" as="fetch" crossorigin="anonymous">
 
+<script>
+  (function(){
+    var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    var isAndroid = /android/i.test(ua) || (navigator.userAgentData && /android/i.test(navigator.userAgentData.platform || ''));
+    if (isAndroid) {
+      document.documentElement.classList.add('is-android-device');
+    }
+  })();
+</script>
+
 <style>
+  html.is-android-device #android-app-prompt { display: flex !important; }
+  html.is-android-device #web-app-content { display: none !important; }
+
   :root{
     --bg: #0E0F11;
     --panel: #16171a;
@@ -410,56 +423,111 @@
   .share-btn:disabled{ opacity:0.35; }
   .share-btn:active{ border-color: var(--text-dim); }
 
-  /* ---- Support Ad Button ---- */
-  .support-ad-card{
+  /* ---- Android App Prompt (Only shown on Android) ---- */
+  .android-prompt-card{
     background: var(--panel);
-    border: 1px dashed var(--accent);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    margin-top: 24px;
-    margin-bottom: 20px;
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    padding: 34px 22px 28px;
+    text-align: center;
+    margin: 10px auto 24px;
+    box-shadow: 0 16px 36px rgba(0,0,0,0.18);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
   }
-  .support-ad-info{
-    flex: 1;
-    min-width: 0;
-  }
-  .support-ad-title{
-    font-size: 14px;
+  .android-prompt-badge{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 11px;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(87, 214, 115, 0.15);
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .android-prompt-logo{
+    width: 82px;
+    height: 82px;
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    margin-bottom: 16px;
+  }
+  .android-prompt-title{
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 10px;
     color: var(--text);
-    margin: 0 0 2px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
   }
-  .support-ad-sub{
-    font-size: 12px;
-    color: var(--text-dim);
-    margin: 0;
-    line-height: 1.35;
+  .android-prompt-desc{
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--accent);
+    margin: 0 0 12px;
   }
-  .support-ad-btn{
-    background: var(--accent);
-    color: var(--accent-text);
-    border: none;
-    border-radius: 10px;
-    padding: 9px 14px;
+  .android-prompt-sub{
     font-size: 13px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: transform .08s ease, background .15s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    line-height: 1.5;
+    color: var(--text-dim);
+    margin: 0 0 24px;
+    max-width: 380px;
   }
-  .support-ad-btn:active{ transform: scale(0.95); background: var(--accent-dark); }
-  .support-ad-btn svg{ width: 15px; height: 15px; fill: currentColor; }
+  .google-play-btn{
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: #000000;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 10px 20px;
+    text-decoration: none;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+    transition: transform .12s ease, box-shadow .12s ease;
+    cursor: pointer;
+  }
+  [data-theme="light"] .google-play-btn{
+    background: #111827;
+  }
+  .google-play-btn:active{
+    transform: scale(0.97);
+  }
+  .gp-icon{
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+  .gp-text{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.15;
+    text-align: left;
+  }
+  .gp-sub{
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #D1D5DB;
+  }
+  .gp-main{
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #FFFFFF;
+  }
+  .android-prompt-foot{
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 14px;
+    opacity: 0.85;
+  }
 
   /* ---- Smart unified search ---- */
   .smart-search{ margin-bottom: 20px; }
@@ -484,7 +552,7 @@
     <div class="brand-group">
       <img src="icons/icon-192.png" alt="GZMN logosu">
       <div class="titles">
-        <p class="brand">Balıkesir Adreleri</p>
+        <p class="brand">Balıkesir Adresleri</p>
         <p class="sub">Altıeylül-Karesi Adres Bulma Uygulaması</p>
       </div>
     </div>
@@ -504,78 +572,92 @@
     </button>
   </header>
 
-  <div class="smart-search">
-    <div class="search-box smart-box">
-      <span class="icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      </span>
-      <input type="search" id="smart-input" placeholder='Örn: Paşa Alanı Mahallesi 163. Sokak No:12' autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
-      <button class="mic-btn" id="smart-mic-btn" type="button" aria-label="Sesli arama">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  <!-- Android App Prompt (Android cihazlarda otomatik gösterilir) -->
+  <div id="android-app-prompt" class="android-prompt-card" style="display:none;">
+    <div class="android-prompt-badge">Android Uygulaması</div>
+    <img src="icons/icon-192.png" alt="Balıkesir Adresleri" class="android-prompt-logo">
+    <h2 class="android-prompt-title">Balıkesir Adresleri</h2>
+    <p class="android-prompt-desc">
+      Uygulamayı kullanmak için Google Play Store'dan indirmeniz gerekmektedir.
+    </p>
+    <p class="android-prompt-sub">
+      Sesli adres arama, 319.000+ kapı numarası ve çevrimdışı navigasyon desteğiyle en iyi deneyim Android uygulamamızda sizi bekliyor.
+    </p>
+    <a href="market://details?id=balikesir.adresleri" id="play-store-cta" class="google-play-btn" role="button" aria-label="Google Play'den İndirin">
+      <svg viewBox="0 0 512 512" class="gp-icon">
+        <path fill="#4285F4" d="M32.5 25.1C28.2 29.7 25.7 36.6 25.7 45.7v420.6c0 9.1 2.5 16 6.8 20.6l2.3 2.1 235.6-235.6v-5.6L34.8 23 32.5 25.1z"/>
+        <path fill="#FBBC04" d="M349.5 311.9l-79.1-79.1v-5.6l79.1-79.1 1.8 1 93.6 53.2c26.7 15.2 26.7 40 0 55.2l-93.6 53.2-1.8 1.2z"/>
+        <path fill="#EA4335" d="M351.3 310.7L270.4 229.8 32.5 467.7c8.8 9.3 23.3 10.5 39.5 1.3l279.3-158.3"/>
+        <path fill="#34A853" d="M351.3 201.3L72 43c-16.2-9.2-30.7-8-39.5 1.3l237.9 237.9 80.9-80.9z"/>
+      </svg>
+      <div class="gp-text">
+        <span class="gp-sub">Google Play'den</span>
+        <span class="gp-main">İNDİRİN</span>
+      </div>
+    </a>
+    <span class="android-prompt-foot">Doğrudan Google Play Store uygulamasında açılır</span>
+  </div>
+
+  <div id="web-app-content">
+    <div class="smart-search">
+      <div class="search-box smart-box">
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input type="search" id="smart-input" placeholder='Örn: Paşa Alanı Mahallesi 163. Sokak No:12' autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+        <button class="mic-btn" id="smart-mic-btn" type="button" aria-label="Sesli arama">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+      </div>
+      <p class="smart-search-hint">Mahalle, sokak ve kapı no'yu tek seferde yaz ya da mikrofona söyle.</p>
+    </div>
+
+    <p class="divider-label">veya adım adım seç</p>
+
+    <div class="field disabled" id="field-il">
+      <button class="field-btn" type="button" disabled>Balıkesir</button>
+    </div>
+
+    <div class="field" id="field-ilce" data-target="ilce">
+      <button class="field-btn placeholder" type="button">İlçe Seçiniz</button>
+      <span class="chev"></span>
+      <span class="clear-x">✕</span>
+    </div>
+
+    <div class="field disabled" id="field-mahalle" data-target="mahalle">
+      <button class="field-btn placeholder" type="button">Mahalle Seçiniz</button>
+      <span class="chev"></span>
+      <span class="clear-x">✕</span>
+    </div>
+
+    <div class="field disabled" id="field-sokak" data-target="sokak">
+      <button class="field-btn placeholder" type="button">Sokak / Cadde Seçiniz</button>
+      <span class="chev"></span>
+      <span class="clear-x">✕</span>
+    </div>
+
+    <div class="field disabled" id="field-kapi" data-target="kapi">
+      <button class="field-btn placeholder" type="button">Kapı No Seçiniz (opsiyonel)</button>
+      <span class="chev"></span>
+      <span class="clear-x">✕</span>
+    </div>
+
+    <div class="action-row">
+      <button class="go-btn" id="go-btn" disabled>Haritada Aç</button>
+      <button class="share-btn" id="share-btn" disabled type="button" aria-label="Paylaş">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
       </button>
     </div>
-    <p class="smart-search-hint">Mahalle, sokak ve kapı no'yu tek seferde yaz ya da mikrofona söyle.</p>
-  </div>
 
-  <p class="divider-label">veya adım adım seç</p>
+    <p class="hint" id="hint">Önce <b>ilçe</b> seçerek başla. Kapı numarası seçmezsen, o sokaktaki <b>en küçük numaralı</b> adres açılır.</p>
 
-  <div class="field disabled" id="field-il">
-    <button class="field-btn" type="button" disabled>Balıkesir</button>
-  </div>
-
-  <div class="field" id="field-ilce" data-target="ilce">
-    <button class="field-btn placeholder" type="button">İlçe Seçiniz</button>
-    <span class="chev"></span>
-    <span class="clear-x">✕</span>
-  </div>
-
-  <div class="field disabled" id="field-mahalle" data-target="mahalle">
-    <button class="field-btn placeholder" type="button">Mahalle Seçiniz</button>
-    <span class="chev"></span>
-    <span class="clear-x">✕</span>
-  </div>
-
-  <div class="field disabled" id="field-sokak" data-target="sokak">
-    <button class="field-btn placeholder" type="button">Sokak / Cadde Seçiniz</button>
-    <span class="chev"></span>
-    <span class="clear-x">✕</span>
-  </div>
-
-  <div class="field disabled" id="field-kapi" data-target="kapi">
-    <button class="field-btn placeholder" type="button">Kapı No Seçiniz (opsiyonel)</button>
-    <span class="chev"></span>
-    <span class="clear-x">✕</span>
-  </div>
-
-  <div class="action-row">
-    <button class="go-btn" id="go-btn" disabled>Haritada Aç</button>
-    <button class="share-btn" id="share-btn" disabled type="button" aria-label="Paylaş">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
-    </button>
-  </div>
-
-  <p class="hint" id="hint">Önce <b>ilçe</b> seçerek başla. Kapı numarası seçmezsen, o sokaktaki <b>en küçük numaralı</b> adres açılır.</p>
-
-  <!-- Uygulamayı Destekle Butonu (Ödüllü / Yüksek Gelirli Reklam) -->
-  <div class="support-ad-card" id="support-ad-card">
-    <div class="support-ad-info">
-      <p class="support-ad-title">
-        <span>❤️</span> Uygulamayı Destekle
-      </p>
-      <p class="support-ad-sub">Geliştirmeye katkıda bulunmak için kısa bir reklam izleyebilirsiniz.</p>
+    <div class="recents-section" id="recents-section" style="display:none;">
+      <div class="recents-tabs">
+        <button class="tab-btn active" type="button" data-tab="recent">Son Aramalar</button>
+        <button class="tab-btn" type="button" data-tab="fav">Favoriler</button>
+      </div>
+      <div class="recents-list" id="recents-list"></div>
     </div>
-    <button class="support-ad-btn" id="support-ad-btn" type="button">
-      <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-      <span>İzle</span>
-    </button>
-  </div>
-
-  <div class="recents-section" id="recents-section" style="display:none;">
-    <div class="recents-tabs">
-      <button class="tab-btn active" type="button" data-tab="recent">Son Aramalar</button>
-      <button class="tab-btn" type="button" data-tab="fav">Favoriler</button>
-    </div>
-    <div class="recents-list" id="recents-list"></div>
   </div>
 </div>
 
@@ -630,6 +712,24 @@
 
   var ILCE_SLUG = { "Altıeylül": "altieylul", "Karesi": "karesi" };
 
+  function saveLastIlce(ilce) {
+    if (ilce && (ilce === 'Altıeylül' || ilce === 'Karesi')) {
+      try { localStorage.setItem('last_selected_ilce', ilce); } catch(e){}
+    }
+  }
+
+  function restoreLastIlce() {
+    try {
+      var saved = localStorage.getItem('last_selected_ilce');
+      if (saved && (saved === 'Altıeylül' || saved === 'Karesi')) {
+        state.ilce = saved;
+        setFieldValue(els.fieldIlce, saved, true);
+        enableField(els.fieldMahalle, true);
+        els.hint.innerHTML = 'Şimdi <b>mahalle</b> seç veya yukarıdan ara.';
+      }
+    } catch(e){}
+  }
+
   var els = {
     fieldIlce: document.getElementById('field-ilce'),
     fieldMahalle: document.getElementById('field-mahalle'),
@@ -657,8 +757,7 @@
     confirmOverlay: document.getElementById('confirm-modal-overlay'),
     confirmText: document.getElementById('confirm-modal-text'),
     confirmCancel: document.getElementById('confirm-btn-cancel'),
-    confirmOk: document.getElementById('confirm-btn-ok'),
-    supportAdBtn: document.getElementById('support-ad-btn')
+    confirmOk: document.getElementById('confirm-btn-ok')
   };
 
   // ---------- confirmation dialog ----------
@@ -905,6 +1004,7 @@
       state.mahalleData = data;
       var list = data[match.sokak] || [];
       state.ilce = match.ilce;
+      saveLastIlce(match.ilce);
       state.mahalle = match.mahalle;
       state.sokak = match.sokak;
       state.kapiList = list;
@@ -1091,6 +1191,7 @@
 
   function fillFormFromEntry(entry){
     state.ilce = entry.ilce;
+    saveLastIlce(entry.ilce);
     state.mahalle = entry.mahalle;
     state.sokak = entry.sokak;
     state.kapi = { no: entry.no, blok: entry.blok, lat: entry.lat, lon: entry.lon };
@@ -1311,6 +1412,7 @@
       items: items,
       onSelect: function(item){
         state.ilce = item.value;
+        saveLastIlce(item.value);
         setFieldValue(els.fieldIlce, item.value, true);
         resetFrom('ilce');
         enableField(els.fieldMahalle, true);
@@ -1413,6 +1515,7 @@
       var target = field.dataset.target;
       if (target === 'ilce'){
         state.ilce = null;
+        try { localStorage.removeItem('last_selected_ilce'); } catch(e){}
         setFieldValue(els.fieldIlce, 'İlçe Seçiniz', false);
         enableField(els.fieldMahalle, false);
         resetFrom('ilce');
@@ -1556,68 +1659,45 @@
     runAddressSearch(transcript);
   });
 
-  // ---------- AdMob / Ads integration (Native & Web Fallback) ----------
-  var AdMobBridge = {
-    isNative: function(){
-      return typeof window.Capacitor !== 'undefined' && window.Capacitor.isPluginAvailable && window.Capacitor.isPluginAvailable('AdMob');
-    },
-    init: function(){
-      if (!this.isNative()) return;
-      try {
-        var AdMob = window.Capacitor.Plugins.AdMob;
-        AdMob.initialize({ requestTrackingAuthorization: true }).then(function(){
-          AdMobBridge.showBanner();
-        }).catch(function(){});
-      } catch(e){}
-    },
-    showBanner: function(){
-      if (!this.isNative()) return;
-      try {
-        var AdMob = window.Capacitor.Plugins.AdMob;
-        AdMob.showBanner({
-          adId: 'ca-app-pub-7055336032867276/8812973679', // Gerçek Banner ID
-          adSize: 'BANNER',
-          position: 'BOTTOM_CENTER',
-          margin: 0,
-          isTesting: false
-        }).catch(function(){});
-      } catch(e){}
-    },
-    showRewarded: function(){
-      if (!this.isNative()){
-        showToast('Reklam desteğiniz için teşekkürler! (Mobil uygulamada video açılır)');
-        return;
-      }
-      showToast('Reklam hazırlanıyor...');
-      try {
-        var AdMob = window.Capacitor.Plugins.AdMob;
-        AdMob.prepareRewardVideoAd({
-          adId: 'ca-app-pub-7055336032867276/2247565325', // Gerçek Ödüllü ID
-          isTesting: false
-        }).then(function(){
-          return AdMob.showRewardVideoAd();
-        }).then(function(){
-          showToast('Desteğiniz için teşekkür ederiz! ❤️');
-        }).catch(function(){
-          showToast('Reklam şu an yüklenemedi, lütfen biraz sonra tekrar deneyin.');
-        });
-      } catch(e){
-        showToast('Reklam yüklenirken bir hata oluştu.');
-      }
+  // ---------- Android OS Detection & Play Store Redirection ----------
+  function checkAndroidPlatform() {
+    var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    var isAndroid = /android/i.test(ua);
+    if (!isAndroid && navigator.userAgentData && navigator.userAgentData.platform) {
+      isAndroid = /android/i.test(navigator.userAgentData.platform);
     }
-  };
-
-  if (els.supportAdBtn){
-    els.supportAdBtn.addEventListener('click', function(){
-      AdMobBridge.showRewarded();
-    });
+    return isAndroid;
   }
 
-  // Cihaz hazır olduğunda AdMob'u başlat
-  document.addEventListener('deviceready', function(){ AdMobBridge.init(); }, false);
-  if (typeof window.Capacitor !== 'undefined') { AdMobBridge.init(); }
+  var isAndroid = checkAndroidPlatform();
+  var androidPrompt = document.getElementById('android-app-prompt');
+  var webContent = document.getElementById('web-app-content');
+
+  if (isAndroid) {
+    if (androidPrompt) androidPrompt.style.display = 'flex';
+    if (webContent) webContent.style.display = 'none';
+
+    var playStoreBtn = document.getElementById('play-store-cta');
+    if (playStoreBtn) {
+      playStoreBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        var marketUri = 'market://details?id=balikesir.adresleri';
+        var fallbackWeb = 'https://play.google.com/store/apps/details?id=balikesir.adresleri';
+
+        // Direct launch in Google Play Store app
+        window.location.href = marketUri;
+        setTimeout(function() {
+          window.location.href = fallbackWeb;
+        }, 1200);
+      });
+    }
+  } else {
+    if (androidPrompt) androidPrompt.style.display = 'none';
+    if (webContent) webContent.style.display = 'block';
+  }
 
   // ---------- init ----------
+  restoreLastIlce();
   renderRecents();
 
   // ---------- service worker ----------
